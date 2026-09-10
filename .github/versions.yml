@@ -1,0 +1,8 @@
+# Version map: TypeScript package -> Reference implementation
+# Used by workflow automation to track upstream reference versions.
+packages:
+  dcbor-parse:
+    npm: "@blockchaincommons/dcbor-parse"
+    repo: "BlockchainCommons/bc-dcbor-parse-rust"
+    version: "0.11.1"
+    commit: "3c91f62edf5b2892e6f32eac68c055d9d4b22df8"

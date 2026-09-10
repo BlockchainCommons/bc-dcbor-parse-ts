@@ -1,0 +1,12 @@
+[
+  {
+    "name": "ESM entry (import *), minified + gzipped",
+    "path": "dist/index.mjs",
+    "limit": "57 kB"
+  },
+  {
+    "name": "lexer subpath, minified + gzipped",
+    "path": "dist/lexer.mjs",
+    "limit": "15 kB"
+  }
+]
