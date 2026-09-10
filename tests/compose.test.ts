@@ -2,13 +2,14 @@
  * Compose tests - 1:1 port of test_compose.rs
  */
 
+import { diagnostic } from "@blockchaincommons/dcbor/diagnostic";
 import { describe, it, expect } from "vitest";
-import { diagnosticOpt } from "@blockchaincommons/dcbor-compat";
+import {} from "@blockchaincommons/dcbor";
 import { parseDcborItem } from "../src/parse";
 import { composeDcborArray, composeDcborMap } from "../src/compose";
 
-function toDiagnosticFlat(cbor: Parameters<typeof diagnosticOpt>[0]): string {
-  return diagnosticOpt(cbor, { flat: true });
+function toDiagnosticFlat(cbor: Parameters<typeof diagnostic>[0]): string {
+  return diagnostic(cbor, { flat: true });
 }
 
 function roundtripArray(array: readonly string[], expectedDiag: string): void {

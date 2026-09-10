@@ -17,23 +17,55 @@ differs from the Rust reference. It has three kinds of entry:
 2. **JS-only input domain** - inputs that have no Rust analog, so there is nothing to diverge from.
 3. **Mapping equivalences** - JS-specific inputs that are validated through the bytes they produce.
 
+Every entry below is checked by `tests/rust-validation`, a Rust program that
+builds `dcbor-parse` at the tracked commit and replays
+`tests/vectors/vectors.json` (876 vectors: the hand-written strings of both
+implementations' suites, grammar-generated sources up to depth 4, and
+corruptions) comparing the dCBOR hex or the error variant and span (Rust byte
+offsets transcoded to UTF-16 code units). The current run: **823 match, 53
+expected divergences, 0 mismatches.**
+
 ## 1. True behavioral divergences
 
-_None recorded yet for the extraction release. The port was byte-compatible with
-the Rust reference at the tracked version when it was extracted from the
-`paritytech/bcts` monorepo._
+### D2. `Unit` inside containers (3 vectors)
 
-> Any divergence found after extraction must be added here in the same commit
-> that introduces or discovers it, with the input, the Rust outcome, the
-> TypeScript outcome, and the reason the difference is intentional.
+The reference accepts the `Unit` keyword at top level but rejects it inside
+an array or map (`UnexpectedToken(Unit)`); its `''` spelling works
+everywhere. TypeScript accepts `Unit` everywhere. This is a reference
+inconsistency the port does not replicate.
+
+### Pending fixes (Phase 3)
+
+- **P1. Fractional seconds (2 vectors).** `2023-12-25T10:30:45.123456Z`
+  keeps microseconds in the reference and is truncated to milliseconds here
+  (a JavaScript `Date`); the encoded float differs.
+- **P2. Leap seconds (2 vectors).** `…T10:30:60Z` is accepted by the
+  reference (normalised to the next minute) and rejected here.
+- **P3. Keyword runs (2 vectors).** `truex` fails to lex as a whole in the
+  reference (a Logos longest-match artefact) and lexes as `true` + junk
+  here, so `parseDcborItemPartial("truex")` succeeds here and fails there.
 
 ## 2. JS-only input domain
 
-_To be documented as the surface is audited._
+- **Error spans on rejected input (S1, 13 vectors; S2, 31 vectors).** Both
+  sides reject the same strings. The reference's error spans come from
+  Logos: an unrecognised run covers its whole extent, `UnrecognizedToken`
+  carries the *previous* token's span, and end-of-input errors sit at the
+  end; TypeScript spans the offending token. Where the reference's lexer
+  fails a whole literal (`h'zz'`, `b64'A'`, `b64'!!'`) and reports
+  `UnrecognizedToken`, TypeScript names the literal error
+  (`InvalidHexString`, `InvalidBase64String`). Spans are UTF-16 code-unit
+  offsets in TypeScript (the language's native unit); the harness transcodes
+  the reference's byte offsets.
 
 ## 3. Mapping equivalences
 
-_To be documented as the surface is audited._
+- Numbers are lexed as float64 on both sides (`parse::<f64>` /
+  `parseFloat`), so integers beyond 2^53 round identically; string escapes
+  are validated but kept verbatim on both sides.
+- Tag names resolve through dcbor's global tags store on both sides
+  (`bc_tags::register_tags()` / `registerTags(getGlobalTagsStore())`);
+  known-value names through the known-values registry.
 
 ## Maintenance
 

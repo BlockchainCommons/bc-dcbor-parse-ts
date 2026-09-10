@@ -7,3 +7,5 @@ scripts
 *.md
 *.json
 LICENSE
+tests/baseline/
+tests/vectors/vectors.json

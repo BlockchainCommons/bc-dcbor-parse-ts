@@ -468,7 +468,7 @@ function tokenDebugString(token: Token): string {
       // Rust `Token::UR(Result<UR>)` → `UR(Ok(<UR debug>))`. We don't
       // have access to the Rust `UR::Debug` shape, so we emit the UR
       // string form, which is stable and unambiguous.
-      return `UR(Ok(${token.value.string()}))`;
+      return `UR(Ok(${token.value.toString()}))`;
   }
 }
 

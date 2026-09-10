@@ -10,7 +10,7 @@
  * @module dcbor-parse/compose
  */
 
-import { type Cbor, cbor, CborMap } from "@blockchaincommons/dcbor-compat";
+import { type Cbor, cbor, CborMap } from "@blockchaincommons/dcbor";
 import { type ParseError, errorMessage } from "./error";
 import { parseDcborItem } from "./parse";
 

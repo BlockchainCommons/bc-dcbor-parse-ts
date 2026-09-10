@@ -10,7 +10,7 @@
  * @module dcbor-parse/token
  */
 
-import { type CborDate, CborDate as DCborDate } from "@blockchaincommons/dcbor-compat";
+import { CborDate } from "@blockchaincommons/dcbor";
 import { UR } from "@blockchaincommons/uniform-resources";
 import { type Span, span, parseError as PE, type ParseResult, ok, err } from "./error";
 
@@ -305,7 +305,7 @@ export class Lexer {
       }
 
       try {
-        const date = DCborDate.fromString(dateStr);
+        const date = CborDate.fromString(dateStr);
         return ok(token.dateLiteral(date));
       } catch {
         return err(PE.invalidDateString(dateStr, this.span()));
@@ -553,7 +553,7 @@ export class Lexer {
       this._tokenEnd = this._position;
 
       try {
-        const ur = UR.fromURString(fullMatch);
+        const ur = UR.parse(fullMatch);
         return ok(token.ur(ur));
       } catch (e) {
         const errorMsg = e instanceof Error ? e.message : String(e);

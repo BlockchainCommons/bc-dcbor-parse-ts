@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
+import { getGlobalTagsStore } from "@blockchaincommons/dcbor";
 import { registerTags } from "@blockchaincommons/tags";
 import { parseDcborItem } from "../src/parse";
 import { composeDcborArray } from "../src/compose";
@@ -13,7 +14,7 @@ import { errorMessage } from "../src/error";
 
 // Register tags before running tests
 beforeAll(() => {
-  registerTags();
+  registerTags(getGlobalTagsStore());
 });
 
 describe("Parity with Rust bc-dcbor-parse", () => {

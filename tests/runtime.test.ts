@@ -5,13 +5,22 @@
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
-import { cbor, CborDate, asBytes, asText } from "@blockchaincommons/dcbor-compat";
+import {
+  cbor,
+  CborDate,
+  asBytes,
+  asText,
+  expectArray,
+  expectMap,
+  getGlobalTagsStore,
+} from "@blockchaincommons/dcbor";
 import { registerTags } from "@blockchaincommons/tags";
 import { parseDcborItem } from "../src/parse";
+import { diagnostic } from "@blockchaincommons/dcbor/diagnostic";
 
 // Register tags before running tests
 beforeAll(() => {
-  registerTags();
+  registerTags(getGlobalTagsStore());
 });
 
 describe("runtime functionality", () => {
@@ -20,7 +29,7 @@ describe("runtime functionality", () => {
       const result = parseDcborItem('"Hello, World!"');
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.toDiagnostic()).toBe('"Hello, World!"');
+        expect(diagnostic(result.value)).toBe('"Hello, World!"');
       }
     });
 
@@ -28,7 +37,7 @@ describe("runtime functionality", () => {
       const result = parseDcborItem('""');
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.toDiagnostic()).toBe('""');
+        expect(diagnostic(result.value)).toBe('""');
       }
     });
 
@@ -36,7 +45,7 @@ describe("runtime functionality", () => {
       const result = parseDcborItem("h'deadbeef'");
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.toDiagnostic()).toBe("h'deadbeef'");
+        expect(diagnostic(result.value)).toBe("h'deadbeef'");
       }
     });
 
@@ -44,7 +53,7 @@ describe("runtime functionality", () => {
       const result = parseDcborItem("h''");
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.toDiagnostic()).toBe("h''");
+        expect(diagnostic(result.value)).toBe("h''");
       }
     });
 
@@ -63,7 +72,7 @@ describe("runtime functionality", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         const expected = CborDate.fromYmd(2023, 12, 25);
-        expect(result.value.toDiagnostic()).toBe(expected.taggedCbor().toDiagnostic());
+        expect(diagnostic(result.value)).toBe(diagnostic(expected.toCbor()));
       }
     });
 
@@ -71,11 +80,11 @@ describe("runtime functionality", () => {
       const result = parseDcborItem("[\"hello\", h'dead', 42]");
       expect(result.ok).toBe(true);
       if (result.ok) {
-        const arr = result.value.toArray();
+        const arr = expectArray(result.value);
         expect(arr.length).toBe(3);
-        expect(arr[0].toDiagnostic()).toBe('"hello"');
-        expect(arr[1].toDiagnostic()).toBe("h'dead'");
-        expect(arr[2].toDiagnostic()).toBe("42");
+        expect(diagnostic(arr[0])).toBe('"hello"');
+        expect(diagnostic(arr[1])).toBe("h'dead'");
+        expect(diagnostic(arr[2])).toBe("42");
       }
     });
 
@@ -83,7 +92,7 @@ describe("runtime functionality", () => {
       const result = parseDcborItem('{"key": "value", "number": 123}');
       expect(result.ok).toBe(true);
       if (result.ok) {
-        const map = result.value.toMap();
+        const map = expectMap(result.value);
         expect(map.has(cbor("key"))).toBe(true);
         expect(map.has(cbor("number"))).toBe(true);
       }
@@ -212,7 +221,7 @@ describe("runtime functionality", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         const expected = CborDate.fromString("2023-12-25T10:30:45Z");
-        expect(result.value.toDiagnostic()).toBe(expected.taggedCbor().toDiagnostic());
+        expect(diagnostic(result.value)).toBe(diagnostic(expected.toCbor()));
       }
     });
 
@@ -221,7 +230,7 @@ describe("runtime functionality", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         const expected = CborDate.fromString("2023-12-25T10:30:45+05:30");
-        expect(result.value.toDiagnostic()).toBe(expected.taggedCbor().toDiagnostic());
+        expect(diagnostic(result.value)).toBe(diagnostic(expected.toCbor()));
       }
     });
 
@@ -230,7 +239,7 @@ describe("runtime functionality", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         const expected = CborDate.fromString("2023-12-25T10:30:45-08:00");
-        expect(result.value.toDiagnostic()).toBe(expected.taggedCbor().toDiagnostic());
+        expect(diagnostic(result.value)).toBe(diagnostic(expected.toCbor()));
       }
     });
 
@@ -239,7 +248,7 @@ describe("runtime functionality", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         const expected = CborDate.fromString("2023-12-25T10:30:45.123Z");
-        expect(result.value.toDiagnostic()).toBe(expected.taggedCbor().toDiagnostic());
+        expect(diagnostic(result.value)).toBe(diagnostic(expected.toCbor()));
       }
     });
 
@@ -248,7 +257,7 @@ describe("runtime functionality", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         const expected = CborDate.fromString("2023-12-25T10:30:45.123456Z");
-        expect(result.value.toDiagnostic()).toBe(expected.taggedCbor().toDiagnostic());
+        expect(diagnostic(result.value)).toBe(diagnostic(expected.toCbor()));
       }
     });
   });
@@ -292,7 +301,7 @@ describe("runtime functionality", () => {
       const result = parseDcborItem(complexArray);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        const array = result.value.toArray();
+        const array = expectArray(result.value);
         expect(array.length).toBe(5);
 
         // Verify hex bytes
@@ -303,7 +312,7 @@ describe("runtime functionality", () => {
 
         // Verify date
         const expectedDate = CborDate.fromString("2023-12-25T10:30:45.123Z");
-        expect(array[3].toDiagnostic()).toBe(expectedDate.taggedCbor().toDiagnostic());
+        expect(diagnostic(array[3])).toBe(diagnostic(expectedDate.toCbor()));
       }
     });
 
@@ -317,7 +326,7 @@ describe("runtime functionality", () => {
       const result = parseDcborItem(complexMap);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        const map = result.value.toMap();
+        const map = expectMap(result.value);
         expect(map.has(cbor("message"))).toBe(true);
         expect(map.has(cbor("data"))).toBe(true);
         expect(map.has(cbor("timestamp"))).toBe(true);

@@ -3,16 +3,25 @@
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
-import { type Cbor, cbor, CborMap, CborDate } from "@blockchaincommons/dcbor-compat";
+import {
+  type Cbor,
+  cbor,
+  CborMap,
+  CborDate,
+  expectNumber,
+  getGlobalTagsStore,
+  taggedValue,
+} from "@blockchaincommons/dcbor";
 import { registerTags } from "@blockchaincommons/tags";
 import { IS_A, UNIT } from "@blockchaincommons/known-values";
 import { UR } from "@blockchaincommons/uniform-resources";
 import { parseDcborItem, parseDcborItemPartial } from "../src/parse";
 import { type ParseError, fullErrorMessage } from "../src/error";
+import { diagnostic } from "@blockchaincommons/dcbor/diagnostic";
 
 // Register tags before running tests
 beforeAll(() => {
-  registerTags();
+  registerTags(getGlobalTagsStore());
 });
 
 /**
@@ -20,12 +29,12 @@ beforeAll(() => {
  * Parses the diagnostic output of a Cbor value and checks it matches.
  */
 function roundtrip(value: Cbor): void {
-  const src = value.toDiagnostic();
+  const src = diagnostic(value);
   const result = parseDcborItem(src);
   if (!result.ok) {
     throw new Error(`Parse error: ${fullErrorMessage(result.error, src)}`);
   }
-  expect(result.value.toDiagnostic()).toBe(value.toDiagnostic());
+  expect(diagnostic(result.value)).toBe(diagnostic(value));
 }
 
 function hexDiagnostic(bytes: Uint8Array): string {
@@ -86,7 +95,7 @@ describe("parse", () => {
       const result = parseDcborItem(hex);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.toDiagnostic()).toBe(cborBytes.toDiagnostic());
+        expect(diagnostic(result.value)).toBe(diagnostic(cborBytes));
       }
     });
 
@@ -99,7 +108,7 @@ describe("parse", () => {
       const result = parseDcborItem(base64);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.toDiagnostic()).toBe(cborBytes.toDiagnostic());
+        expect(diagnostic(result.value)).toBe(diagnostic(cborBytes));
       }
     });
   });
@@ -107,27 +116,27 @@ describe("parse", () => {
   describe("NaN", () => {
     it("should parse NaN", () => {
       const cborNaN = cbor(NaN);
-      const src = cborNaN.toDiagnostic();
+      const src = diagnostic(cborNaN);
       expect(src).toBe("NaN");
       const result = parseDcborItem(src);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(Number.isNaN(result.value.toNumber())).toBe(true);
+        expect(Number.isNaN(expectNumber(result.value))).toBe(true);
       }
     });
   });
 
   describe("tagged values", () => {
     it("should parse tagged byte strings", () => {
-      roundtrip(cbor({ tag: 1234, value: cbor(new Uint8Array([1, 2, 3])) }));
+      roundtrip(taggedValue(1234, cbor(new Uint8Array([1, 2, 3]))));
     });
 
     it("should parse tagged strings", () => {
-      roundtrip(cbor({ tag: 5678, value: cbor("Hello, world!") }));
+      roundtrip(taggedValue(5678, cbor("Hello, world!")));
     });
 
     it("should parse tagged booleans", () => {
-      roundtrip(cbor({ tag: 9012, value: cbor(true) }));
+      roundtrip(taggedValue(9012, cbor(true)));
     });
   });
 
@@ -175,39 +184,39 @@ describe("parse", () => {
   describe("known values", () => {
     it("should parse known value by number", () => {
       const v = IS_A;
-      const cborValue = v.taggedCbor();
-      const src = cborValue.toDiagnostic();
+      const cborValue = v.toCbor();
+      const src = diagnostic(cborValue);
       expect(src).toBe("40000(1)");
       const result = parseDcborItem(src);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.toDiagnostic()).toBe(cborValue.toDiagnostic());
+        expect(diagnostic(result.value)).toBe(diagnostic(cborValue));
       }
     });
 
     it("should parse known value with single quotes", () => {
       const v = IS_A;
-      const cborValue = v.taggedCbor();
+      const cborValue = v.toCbor();
 
       // Test '1'
       const result2 = parseDcborItem("'1'");
       expect(result2.ok).toBe(true);
       if (result2.ok) {
-        expect(result2.value.toDiagnostic()).toBe(cborValue.toDiagnostic());
+        expect(diagnostic(result2.value)).toBe(diagnostic(cborValue));
       }
 
       // Test 'isA'
       const result3 = parseDcborItem("'isA'");
       expect(result3.ok).toBe(true);
       if (result3.ok) {
-        expect(result3.value.toDiagnostic()).toBe(cborValue.toDiagnostic());
+        expect(diagnostic(result3.value)).toBe(diagnostic(cborValue));
       }
     });
 
     it("should parse unit known value", () => {
       const v = UNIT;
-      const cborValue = v.taggedCbor();
-      const src = cborValue.toDiagnostic();
+      const cborValue = v.toCbor();
+      const src = diagnostic(cborValue);
       expect(src).toBe("40000(0)");
 
       // Test various unit representations
@@ -216,7 +225,7 @@ describe("parse", () => {
         const result = parseDcborItem(test);
         expect(result.ok).toBe(true);
         if (result.ok) {
-          expect(result.value.toDiagnostic()).toBe(cborValue.toDiagnostic());
+          expect(diagnostic(result.value)).toBe(diagnostic(cborValue));
         }
       }
     });
@@ -326,7 +335,7 @@ describe("parse", () => {
       const result = parseDcborItem(src);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.toDiagnostic()).toBe("[1, 2, 3]");
+        expect(diagnostic(result.value)).toBe("[1, 2, 3]");
       }
     });
 
@@ -335,7 +344,7 @@ describe("parse", () => {
       const result = parseDcborItem(src);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.toDiagnostic()).toBe("[1, 2, 3]");
+        expect(diagnostic(result.value)).toBe("[1, 2, 3]");
       }
     });
   });
@@ -346,7 +355,7 @@ describe("parse", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         const [cborValue, used] = result.value;
-        expect(cborValue.toDiagnostic()).toBe("true");
+        expect(diagnostic(cborValue)).toBe("true");
         expect(used).toBe(5);
       }
     });
@@ -357,7 +366,7 @@ describe("parse", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         const [cborValue, used] = result.value;
-        expect(cborValue.toDiagnostic()).toBe("false");
+        expect(diagnostic(cborValue)).toBe("false");
         expect(used).toBe(src.length);
       }
     });
@@ -369,7 +378,7 @@ describe("parse", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         // Should be a tagged date value
-        expect(result.value.toDiagnostic()).toMatch(/^\d+\(/);
+        expect(diagnostic(result.value)).toMatch(/^\d+\(/);
       }
     });
 
@@ -383,7 +392,7 @@ describe("parse", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         // Dates should be tagged, not quoted strings
-        const diag = result.value.toDiagnostic();
+        const diag = diagnostic(result.value);
         expect(diag).not.toContain('"');
       }
     });
@@ -429,15 +438,15 @@ describe("parse", () => {
     it("should parse UR strings", () => {
       // Create a date UR - use untaggedCbor() since parseUr adds the tag wrapper
       const date = CborDate.fromYmd(2025, 5, 15);
-      const ur = UR.new("date", date.untaggedCbor());
-      const urString = ur.string();
+      const ur = UR.from("date", date.untaggedCbor());
+      const urString = ur.toString();
       expect(urString).toMatch(/^ur:date\//);
 
       const result = parseDcborItem(urString);
       expect(result.ok).toBe(true);
       if (result.ok) {
         // The parsed result should match the tagged date CBOR
-        expect(result.value.toDiagnostic()).toBe(date.taggedCbor().toDiagnostic());
+        expect(diagnostic(result.value)).toBe(diagnostic(date.toCbor()));
       }
     });
 
@@ -462,13 +471,13 @@ describe("parse", () => {
   describe("named tags", () => {
     it("should parse named tag (date)", () => {
       const date = CborDate.fromYmd(2025, 5, 15);
-      const dateCbor = date.taggedCbor();
+      const dateCbor = date.toCbor();
       // Replace numeric tag with name: '1(' -> 'date('
-      const dateDiag = dateCbor.toDiagnostic().replace("1(", "date(");
+      const dateDiag = diagnostic(dateCbor).replace("1(", "date(");
       const result = parseDcborItem(dateDiag);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.toDiagnostic()).toBe(dateCbor.toDiagnostic());
+        expect(diagnostic(result.value)).toBe(diagnostic(dateCbor));
       }
     });
   });
@@ -477,7 +486,7 @@ describe("parse", () => {
     it("should parse complex nested structures", () => {
       // Nested array with tagged values, arrays, and maps
       const nested = cbor([
-        cbor({ tag: 1234, value: cbor(new Uint8Array([0x01, 0x02, 0x03])) }),
+        taggedValue(1234, cbor(new Uint8Array([0x01, 0x02, 0x03]))),
         cbor([cbor(1), cbor(2), cbor(3)]),
         (() => {
           const map = new CborMap();
@@ -499,7 +508,7 @@ describe("parse", () => {
       if (result.ok) {
         const map = new CborMap();
         map.set(cbor("Hello"), cbor("World"));
-        expect(result.value.toDiagnostic()).toBe(cbor(map).toDiagnostic());
+        expect(diagnostic(result.value)).toBe(diagnostic(cbor(map)));
       }
     });
   });
@@ -538,7 +547,7 @@ describe("parse", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         const expected = CborDate.fromString("2023-02-08T15:30:45.123Z");
-        expect(result.value.toDiagnostic()).toBe(expected.taggedCbor().toDiagnostic());
+        expect(diagnostic(result.value)).toBe(diagnostic(expected.toCbor()));
       }
     });
 
@@ -560,7 +569,7 @@ describe("parse", () => {
       const result = parseDcborItem("2023");
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.toDiagnostic()).toBe("2023");
+        expect(diagnostic(result.value)).toBe("2023");
       }
     });
 
@@ -569,7 +578,7 @@ describe("parse", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         const expected = CborDate.fromYmd(2023, 1, 1);
-        expect(result.value.toDiagnostic()).toBe(expected.taggedCbor().toDiagnostic());
+        expect(diagnostic(result.value)).toBe(diagnostic(expected.toCbor()));
       }
     });
 
@@ -579,7 +588,7 @@ describe("parse", () => {
       expect(numberResult.ok).toBe(true);
       expect(dateResult.ok).toBe(true);
       if (numberResult.ok && dateResult.ok) {
-        expect(numberResult.value.toDiagnostic()).not.toBe(dateResult.value.toDiagnostic());
+        expect(diagnostic(numberResult.value)).not.toBe(diagnostic(dateResult.value));
       }
     });
   });

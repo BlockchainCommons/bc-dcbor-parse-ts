@@ -10,8 +10,14 @@
  * @module dcbor-parse/parse
  */
 
-import { type Cbor, cbor, CborMap, getGlobalTagsStore } from "@blockchaincommons/dcbor-compat";
-import { KnownValue, KNOWN_VALUES } from "@blockchaincommons/known-values";
+import {
+  type Cbor,
+  cbor,
+  CborMap,
+  getGlobalTagsStore,
+  taggedValue,
+} from "@blockchaincommons/dcbor";
+import { KnownValue, getGlobalKnownValuesStore } from "@blockchaincommons/known-values";
 import type { UR } from "@blockchaincommons/uniform-resources";
 import {
   type Span,
@@ -184,17 +190,17 @@ function parseItemToken(token: Token, lexer: Lexer): ParseResult<Cbor> {
       return parseNameTag(token.value, lexer);
 
     case "KnownValueNumber":
-      return ok(new KnownValue(token.value).taggedCbor());
+      return ok(new KnownValue(token.value).toCbor());
 
     case "KnownValueName": {
       // Empty string means Unit (value 0)
       if (token.value === "") {
-        return ok(new KnownValue(0).taggedCbor());
+        return ok(new KnownValue(0).toCbor());
       }
 
       const knownValue = knownValueForName(token.value);
       if (knownValue !== undefined) {
-        return ok(knownValue.taggedCbor());
+        return ok(knownValue.toCbor());
       }
       const tokenSpan = lexer.span();
       return err(
@@ -203,7 +209,7 @@ function parseItemToken(token: Token, lexer: Lexer): ParseResult<Cbor> {
     }
 
     case "Unit":
-      return ok(new KnownValue(0).taggedCbor());
+      return ok(new KnownValue(0).toCbor());
 
     case "BracketOpen":
       return parseArray(lexer);
@@ -236,15 +242,15 @@ function tagForName(name: string): number | bigint | undefined {
 }
 
 function knownValueForName(name: string): KnownValue | undefined {
-  return KNOWN_VALUES.get().knownValueNamed(name);
+  return getGlobalKnownValuesStore().byName(name);
 }
 
 function parseUr(ur: UR, tokenSpan: Span): ParseResult<Cbor> {
-  const urType = ur.urTypeStr();
+  const urType = ur.type.name;
   const tag = tagForName(urType);
 
   if (tag !== undefined) {
-    return ok(cbor({ tag, value: ur.cbor() }));
+    return ok(taggedValue(tag, ur.cbor));
   }
 
   return err(
@@ -271,7 +277,7 @@ function parseNumberTag(tagValue: number | bigint, lexer: Lexer): ParseResult<Cb
     // u64 outside the safe-integer range), dCBOR's `cbor({ tag, value })`
     // builder serialises it as a `bigint` tag — matching Rust which
     // accepts the full `0..=2^64-1` range natively.
-    return ok(cbor({ tag: tagValue, value: itemResult.value }));
+    return ok(taggedValue(tagValue, itemResult.value));
   }
 
   return err(PE.unmatchedParentheses(lexer.span()));
@@ -293,7 +299,7 @@ function parseNameTag(name: string, lexer: Lexer): ParseResult<Cbor> {
   if (closeResult.value.type === "ParenthesisClose") {
     const tag = tagForName(name);
     if (tag !== undefined) {
-      return ok(cbor({ tag, value: itemResult.value }));
+      return ok(taggedValue(tag, itemResult.value));
     }
     return err(PE.unknownTagName(name, tagSpan));
   }
