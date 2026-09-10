@@ -140,6 +140,18 @@ export const token = {
  *
  * Corresponds to the Rust `logos::Lexer` used in parse.rs
  */
+// Sticky regexes: matched at `lastIndex` without slicing the source, so a
+// long document lexes in linear time.
+const DATE_RE = /\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)?/y;
+const NUMBER_RE = /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
+const TAG_NAME_RE = /[a-zA-Z_][a-zA-Z0-9_-]*\(/y;
+const STRING_RE = /"([^"\\\x00-\x1F]|\\(["\\bnfrt/]|u[a-fA-F0-9]{4}))*"/y;
+const HEX_RE = /[0-9a-fA-F]*/y;
+const BASE64_RE = /[A-Za-z0-9+/=]*/y;
+const KNOWN_VALUE_NUMBER_RE = /'(0|[1-9][0-9]*)'/y;
+const KNOWN_VALUE_NAME_RE = /'([a-zA-Z_][a-zA-Z0-9_-]*)'/y;
+const UR_RE = /ur:([a-zA-Z0-9][a-zA-Z0-9-]*)\/([a-zA-Z]{8,})/y;
+
 export class Lexer {
   private readonly _source: string;
   private _position: number;
@@ -290,9 +302,7 @@ export class Lexer {
 
   private _tryMatchDateLiteral(): ParseResult<Token> | undefined {
     // ISO-8601 date: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS...
-    const dateRegex = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)?/;
-    const remaining = this._source.slice(this._position);
-    const match = dateRegex.exec(remaining);
+    const match = this._exec(DATE_RE);
 
     if (match !== null) {
       const dateStr = match[0];
@@ -318,9 +328,7 @@ export class Lexer {
   private _tryMatchTagValueOrNumber(): ParseResult<Token> | undefined {
     // Check for tag value: integer followed by (
     // Or just a number
-    const numberRegex = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
-    const remaining = this._source.slice(this._position);
-    const match = numberRegex.exec(remaining);
+    const match = this._exec(NUMBER_RE);
 
     if (match !== null) {
       const numStr = match[0];
@@ -367,9 +375,7 @@ export class Lexer {
 
   private _tryMatchTagName(): ParseResult<Token> | undefined {
     // Tag name: identifier followed by (
-    const tagNameRegex = /^[a-zA-Z_][a-zA-Z0-9_-]*\(/;
-    const remaining = this._source.slice(this._position);
-    const match = tagNameRegex.exec(remaining);
+    const match = this._exec(TAG_NAME_RE);
 
     if (match !== null) {
       const fullMatch = match[0];
@@ -390,9 +396,7 @@ export class Lexer {
 
     // JavaScript-style string with escape sequences
     // eslint-disable-next-line no-control-regex
-    const stringRegex = /^"([^"\\\x00-\x1F]|\\(["\\bnfrt/]|u[a-fA-F0-9]{4}))*"/;
-    const remaining = this._source.slice(this._position);
-    const match = stringRegex.exec(remaining);
+    const match = this._exec(STRING_RE);
 
     if (match !== null) {
       const fullMatch = match[0];
@@ -422,9 +426,7 @@ export class Lexer {
       return undefined;
     }
 
-    const hexRegex = /^[0-9a-fA-F]*/;
-    const remaining = this._source.slice(this._position);
-    const match = hexRegex.exec(remaining);
+    const match = this._exec(HEX_RE);
     const hexPart = match !== null ? match[0] : "";
 
     this._position += hexPart.length;
@@ -453,9 +455,7 @@ export class Lexer {
       return undefined;
     }
 
-    const base64Regex = /^[A-Za-z0-9+/=]*/;
-    const remaining = this._source.slice(this._position);
-    const match = base64Regex.exec(remaining);
+    const match = this._exec(BASE64_RE);
     const base64Part = match !== null ? match[0] : "";
 
     this._position += base64Part.length;
@@ -495,9 +495,7 @@ export class Lexer {
     }
 
     // Check for numeric known value: '0' or '[1-9][0-9]*'
-    const numericRegex = /^'(0|[1-9][0-9]*)'/;
-    const remaining = this._source.slice(this._position);
-    let match = numericRegex.exec(remaining);
+    let match = this._exec(KNOWN_VALUE_NUMBER_RE);
 
     if (match !== null) {
       const fullMatch = match[0];
@@ -517,8 +515,7 @@ export class Lexer {
     }
 
     // Check for named known value: '[a-zA-Z_][a-zA-Z0-9_-]*'
-    const nameRegex = /^'([a-zA-Z_][a-zA-Z0-9_-]*)'/;
-    match = nameRegex.exec(remaining);
+    match = this._exec(KNOWN_VALUE_NAME_RE);
 
     if (match !== null) {
       const fullMatch = match[0];
@@ -543,9 +540,7 @@ export class Lexer {
 
   private _tryMatchUR(): ParseResult<Token> | undefined {
     // ur:type/data
-    const urRegex = /^ur:([a-zA-Z0-9][a-zA-Z0-9-]*)\/([a-zA-Z]{8,})/;
-    const remaining = this._source.slice(this._position);
-    const match = urRegex.exec(remaining);
+    const match = this._exec(UR_RE);
 
     if (match !== null) {
       const fullMatch = match[0];
@@ -588,8 +583,14 @@ export class Lexer {
     return undefined;
   }
 
+  /** Runs a sticky regex at the current position. */
+  private _exec(re: RegExp): RegExpExecArray | null {
+    re.lastIndex = this._position;
+    return re.exec(this._source);
+  }
+
   private _matchLiteral(literal: string): boolean {
-    if (this._source.slice(this._position, this._position + literal.length) === literal) {
+    if (this._source.startsWith(literal, this._position)) {
       this._position += literal.length;
       return true;
     }
