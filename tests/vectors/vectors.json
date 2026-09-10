@@ -719,7 +719,7 @@
     "k": "parse",
     "src": "2023-12-25T10:30:45.123456Z"
    },
-   "expect": "c1fb41d962567547df3b"
+   "expect": "c1fb41d962567547e6b4"
   },
   {
    "name": "parse \"2023-02-08T15:30:45+01:00\"",
@@ -855,7 +855,7 @@
     "k": "parse",
     "src": "2023-12-25T10:30:60Z"
    },
-   "expect": "throw:InvalidDateString@0-20"
+   "expect": "c11a658959e4"
   },
   {
    "name": "parse \"2023-12-25T10:30:45\"",
@@ -1687,7 +1687,7 @@
     "k": "parse",
     "src": "truex"
    },
-   "expect": "throw:ExtraData@4-5"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"-Infinityzz\"",
@@ -1703,7 +1703,7 @@
     "k": "parse",
     "src": "nullx"
    },
-   "expect": "throw:ExtraData@4-5"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"1x\"",
@@ -2559,7 +2559,7 @@
     "k": "partial",
     "src": "2023-12-25T10:30:45.123456Z"
    },
-   "expect": "c1fb41d962567547df3b@27"
+   "expect": "c1fb41d962567547e6b4@27"
   },
   {
    "name": "partial \"2023-02-08T15:30:45+01:00\"",
@@ -2695,7 +2695,7 @@
     "k": "partial",
     "src": "2023-12-25T10:30:60Z"
    },
-   "expect": "throw:InvalidDateString@0-20"
+   "expect": "c11a658959e4@20"
   },
   {
    "name": "partial \"2023-12-25T10:30:45\"",
@@ -3527,7 +3527,7 @@
     "k": "partial",
     "src": "truex"
    },
-   "expect": "f5@4"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "partial \"-Infinityzz\"",
@@ -3543,7 +3543,7 @@
     "k": "partial",
     "src": "nullx"
    },
-   "expect": "f6@4"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "partial \"1x\"",

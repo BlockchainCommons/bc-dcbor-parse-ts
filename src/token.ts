@@ -12,7 +12,7 @@
 
 import { CborDate } from "@blockchaincommons/dcbor";
 import { UR } from "@blockchaincommons/uniform-resources";
-import { type Span, span, parseError as PE, type ParseResult, ok, err } from "./error";
+import { type Span, span, DcborParseError } from "./error";
 
 /**
  * Token types produced by the lexer.
@@ -145,12 +145,18 @@ export const token = {
 const DATE_RE = /\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)?/y;
 const NUMBER_RE = /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
 const TAG_NAME_RE = /[a-zA-Z_][a-zA-Z0-9_-]*\(/y;
+// eslint-disable-next-line no-control-regex -- control characters are excluded from strings, as in the reference
 const STRING_RE = /"([^"\\\x00-\x1F]|\\(["\\bnfrt/]|u[a-fA-F0-9]{4}))*"/y;
 const HEX_RE = /[0-9a-fA-F]*/y;
 const BASE64_RE = /[A-Za-z0-9+/=]*/y;
 const KNOWN_VALUE_NUMBER_RE = /'(0|[1-9][0-9]*)'/y;
 const KNOWN_VALUE_NAME_RE = /'([a-zA-Z_][a-zA-Z0-9_-]*)'/y;
 const UR_RE = /ur:([a-zA-Z0-9][a-zA-Z0-9-]*)\/([a-zA-Z]{8,})/y;
+
+// A keyword must not run straight into identifier characters (`truex`); the
+// reference's lexer treats such a run as one unrecognised token. `-Infinity`
+// is exempt: nothing identifier-like starts with `-` there.
+const IDENT_CHAR = /[a-zA-Z0-9_-]/;
 
 export class Lexer {
   private readonly _source: string;
@@ -183,7 +189,12 @@ export class Lexer {
    * Gets the next token, or undefined if at end of input.
    * Returns a Result to handle lexing errors.
    */
-  next(): ParseResult<Token> | undefined {
+  /**
+   * The next token, or `undefined` at the end of the source.
+   *
+   * @throws {DcborParseError} for unrecognised text or a malformed literal
+   */
+  next(): Token | undefined {
     this._skipWhitespaceAndComments();
 
     if (this._position >= this._source.length) {
@@ -209,7 +220,7 @@ export class Lexer {
       // Unrecognized token - consume one character
       this._position++;
       this._tokenEnd = this._position;
-      return err(PE.unrecognizedToken(this.span()));
+      throw DcborParseError.unrecognizedToken(this.span());
     }
 
     return result;
@@ -276,7 +287,7 @@ export class Lexer {
    * rejected the whole prefix as a single `UnrecognizedToken`, which
    * broke span/variant parity with Rust.
    */
-  private _tryMatchKeyword(): ParseResult<Token> | undefined {
+  private _tryMatchKeyword(): Token | undefined {
     const keywords: [string, Token][] = [
       // Order matters: `-Infinity` must come before any other `-` based
       // matcher (we lex this before numbers, so the `-` doesn't get
@@ -291,16 +302,21 @@ export class Lexer {
     ];
 
     for (const [keyword, tok] of keywords) {
-      if (this._matchLiteral(keyword)) {
+      if (
+        this._source.startsWith(keyword, this._position) &&
+        (keyword.startsWith("-") ||
+          !IDENT_CHAR.test(this._source[this._position + keyword.length] ?? ""))
+      ) {
+        this._position += keyword.length;
         this._tokenEnd = this._position;
-        return ok(tok);
+        return tok;
       }
     }
 
     return undefined;
   }
 
-  private _tryMatchDateLiteral(): ParseResult<Token> | undefined {
+  private _tryMatchDateLiteral(): Token | undefined {
     // ISO-8601 date: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS...
     const match = this._exec(DATE_RE);
 
@@ -311,21 +327,20 @@ export class Lexer {
 
       // Validate date components before parsing to match Rust's strict behavior
       if (!isValidDateString(dateStr)) {
-        return err(PE.invalidDateString(dateStr, this.span()));
+        throw DcborParseError.invalidDateString(dateStr, this.span());
       }
 
-      try {
-        const date = CborDate.fromString(dateStr);
-        return ok(token.dateLiteral(date));
-      } catch {
-        return err(PE.invalidDateString(dateStr, this.span()));
+      const date = dateFromLiteral(dateStr);
+      if (date === undefined) {
+        throw DcborParseError.invalidDateString(dateStr, this.span());
       }
+      return token.dateLiteral(date);
     }
 
     return undefined;
   }
 
-  private _tryMatchTagValueOrNumber(): ParseResult<Token> | undefined {
+  private _tryMatchTagValueOrNumber(): Token | undefined {
     // Check for tag value: integer followed by (
     // Or just a number
     const match = this._exec(NUMBER_RE);
@@ -354,12 +369,13 @@ export class Lexer {
 
         const parsed = parseUsize64(numStr);
         if (parsed === undefined) {
-          return err(
-            PE.invalidTagValue(numStr, span(this._tokenStart, this._tokenStart + numStr.length)),
+          throw DcborParseError.invalidTagValue(
+            numStr,
+            span(this._tokenStart, this._tokenStart + numStr.length),
           );
         }
 
-        return ok(token.tagValue(parsed));
+        return token.tagValue(parsed);
       }
 
       // It's a regular number
@@ -367,13 +383,13 @@ export class Lexer {
       this._tokenEnd = this._position;
 
       const num = parseFloat(numStr);
-      return ok(token.number(num));
+      return token.number(num);
     }
 
     return undefined;
   }
 
-  private _tryMatchTagName(): ParseResult<Token> | undefined {
+  private _tryMatchTagName(): Token | undefined {
     // Tag name: identifier followed by (
     const match = this._exec(TAG_NAME_RE);
 
@@ -383,13 +399,13 @@ export class Lexer {
       this._position += fullMatch.length;
       this._tokenEnd = this._position;
 
-      return ok(token.tagName(name));
+      return token.tagName(name);
     }
 
     return undefined;
   }
 
-  private _tryMatchString(): ParseResult<Token> | undefined {
+  private _tryMatchString(): Token | undefined {
     if (this._source[this._position] !== '"') {
       return undefined;
     }
@@ -404,7 +420,7 @@ export class Lexer {
       this._tokenEnd = this._position;
 
       // Return the full string including quotes
-      return ok(token.string(fullMatch));
+      return token.string(fullMatch);
     }
 
     // Invalid string: emit an unrecognized token covering just the
@@ -417,10 +433,10 @@ export class Lexer {
     // span beyond what Rust reports.
     this._position++;
     this._tokenEnd = this._position;
-    return err(PE.unrecognizedToken(this.span()));
+    throw DcborParseError.unrecognizedToken(this.span());
   }
 
-  private _tryMatchByteStringHex(): ParseResult<Token> | undefined {
+  private _tryMatchByteStringHex(): Token | undefined {
     // h'...'
     if (!this._matchLiteral("h'")) {
       return undefined;
@@ -433,7 +449,7 @@ export class Lexer {
 
     if (this._source[this._position] !== "'") {
       this._tokenEnd = this._position;
-      return err(PE.invalidHexString(this.span()));
+      throw DcborParseError.invalidHexString(this.span());
     }
 
     this._position++; // Skip closing '
@@ -441,15 +457,15 @@ export class Lexer {
 
     // Check that hex string has even length
     if (hexPart.length % 2 !== 0) {
-      return err(PE.invalidHexString(this.span()));
+      throw DcborParseError.invalidHexString(this.span());
     }
 
     // Decode hex
     const bytes = hexToBytes(hexPart);
-    return ok(token.byteStringHex(bytes));
+    return token.byteStringHex(bytes);
   }
 
-  private _tryMatchByteStringBase64(): ParseResult<Token> | undefined {
+  private _tryMatchByteStringBase64(): Token | undefined {
     // b64'...'
     if (!this._matchLiteral("b64'")) {
       return undefined;
@@ -462,7 +478,7 @@ export class Lexer {
 
     if (this._source[this._position] !== "'") {
       this._tokenEnd = this._position;
-      return err(PE.invalidBase64String(this.span()));
+      throw DcborParseError.invalidBase64String(this.span());
     }
 
     this._position++; // Skip closing '
@@ -470,19 +486,19 @@ export class Lexer {
 
     // Check minimum length requirement (2 characters)
     if (base64Part.length < 2) {
-      return err(PE.invalidBase64String(this.span()));
+      throw DcborParseError.invalidBase64String(this.span());
     }
 
     // Decode base64
     try {
       const bytes = base64ToBytes(base64Part);
-      return ok(token.byteStringBase64(bytes));
+      return token.byteStringBase64(bytes);
     } catch {
-      return err(PE.invalidBase64String(this.span()));
+      throw DcborParseError.invalidBase64String(this.span());
     }
   }
 
-  private _tryMatchKnownValue(): ParseResult<Token> | undefined {
+  private _tryMatchKnownValue(): Token | undefined {
     if (this._source[this._position] !== "'") {
       return undefined;
     }
@@ -491,7 +507,7 @@ export class Lexer {
     if (this._source[this._position + 1] === "'") {
       this._position += 2;
       this._tokenEnd = this._position;
-      return ok(token.knownValueName(""));
+      return token.knownValueName("");
     }
 
     // Check for numeric known value: '0' or '[1-9][0-9]*'
@@ -508,10 +524,13 @@ export class Lexer {
       // `TagValue` to get the same narrow-when-safe-else-bigint path.
       const value = parseUsize64(numStr);
       if (value === undefined) {
-        return err(PE.invalidKnownValue(numStr, span(this._tokenStart + 1, this._tokenEnd - 1)));
+        throw DcborParseError.invalidKnownValue(
+          numStr,
+          span(this._tokenStart + 1, this._tokenEnd - 1),
+        );
       }
 
-      return ok(token.knownValueNumber(value));
+      return token.knownValueNumber(value);
     }
 
     // Check for named known value: '[a-zA-Z_][a-zA-Z0-9_-]*'
@@ -523,7 +542,7 @@ export class Lexer {
       this._position += fullMatch.length;
       this._tokenEnd = this._position;
 
-      return ok(token.knownValueName(name));
+      return token.knownValueName(name);
     }
 
     // Invalid known value: emit an unrecognized token covering just the
@@ -535,10 +554,10 @@ export class Lexer {
     // inflated the error span beyond what Rust reports.
     this._position++;
     this._tokenEnd = this._position;
-    return err(PE.unrecognizedToken(this.span()));
+    throw DcborParseError.unrecognizedToken(this.span());
   }
 
-  private _tryMatchUR(): ParseResult<Token> | undefined {
+  private _tryMatchUR(): Token | undefined {
     // ur:type/data
     const match = this._exec(UR_RE);
 
@@ -549,17 +568,17 @@ export class Lexer {
 
       try {
         const ur = UR.parse(fullMatch);
-        return ok(token.ur(ur));
+        return token.ur(ur);
       } catch (e) {
         const errorMsg = e instanceof Error ? e.message : String(e);
-        return err(PE.invalidUr(errorMsg, this.span()));
+        throw DcborParseError.invalidUr(errorMsg, this.span());
       }
     }
 
     return undefined;
   }
 
-  private _tryMatchPunctuation(): ParseResult<Token> | undefined {
+  private _tryMatchPunctuation(): Token | undefined {
     const ch = this._source[this._position];
 
     const punctuation: Record<string, Token> = {
@@ -577,7 +596,7 @@ export class Lexer {
     if (matched !== undefined) {
       this._position++;
       this._tokenEnd = this._position;
-      return ok(matched);
+      return matched;
     }
 
     return undefined;
@@ -712,8 +731,36 @@ function isValidDateString(dateStr: string): boolean {
 
     if (hour < 0 || hour > 23) return false;
     if (minute < 0 || minute > 59) return false;
-    if (second < 0 || second > 59) return false;
+    if (second < 0 || second > 60) return false;
   }
 
   return true;
+}
+
+const DATE_PARTS_RE =
+  /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|([+-])(\d{2}):(\d{2})))?$/;
+
+/**
+ * A date literal as `CborDate`, computed as the reference does: whole seconds
+ * plus nanoseconds (the fraction truncated to nine digits); a `:60` leap
+ * second is second 59 plus one second of nanoseconds.
+ */
+function dateFromLiteral(text: string): CborDate | undefined {
+  const m = DATE_PARTS_RE.exec(text);
+  if (m === null) return undefined;
+  const [, y, mo, d, h = "0", mi = "0", sec = "0", frac = "", zone, sign, oh, om] = m;
+  let second = Number(sec);
+  let nanoseconds = Number(`${frac}000000000`.slice(0, 9));
+  if (second === 60) {
+    second = 59;
+    nanoseconds += 1_000_000_000;
+  }
+  const offsetSeconds =
+    zone === undefined || zone === "Z"
+      ? 0
+      : (sign === "+" ? 1 : -1) * (Number(oh) * 3600 + Number(om) * 60);
+  return CborDate.fromYmdHms(Number(y), Number(mo), Number(d), Number(h), Number(mi), second, {
+    nanoseconds,
+    offsetSeconds,
+  });
 }

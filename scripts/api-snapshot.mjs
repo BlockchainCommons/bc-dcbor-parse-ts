@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const check = process.argv.includes("--check");
 
-const ENTRIES = ["index"];
+const ENTRIES = ["index", "lexer"];
 
 let failed = false;
 for (const entry of ENTRIES) {

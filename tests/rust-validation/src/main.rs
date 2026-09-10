@@ -105,21 +105,13 @@ fn main() {
 ///     (UnrecognizedToken) where TypeScript names the literal error.
 /// D2  `Unit` inside an array or map: the reference rejects it
 ///     (UnexpectedToken(Unit)); TypeScript accepts it as it does at top level.
-/// P1  (pending) fractional seconds beyond milliseconds are truncated.
-/// P2  (pending) `:60` seconds are rejected by TypeScript.
-/// P3  (pending) a keyword followed by identifier characters (`truex`) is
-///     lexed greedily by TypeScript and fails whole in the reference.
 fn expected_divergence(recipe: &serde_json::Value, got: &str, want: &str) -> Option<&'static str> {
     let variant = |s: &str| s.trim_start_matches("throw:").split('@').next().unwrap_or("").to_string();
     let both_reject = got.starts_with("throw:") && want.starts_with("throw:");
-    let src = recipe.get("src").and_then(|s| s.as_str()).unwrap_or("");
     if both_reject && variant(got) == variant(want) { return Some("S1"); }
     if both_reject && variant(got) == "UnrecognizedToken" && matches!(variant(want).as_str(), "InvalidHexString" | "InvalidBase64String" | "ExtraData" | "InvalidUr" | "UnrecognizedToken") {
         return Some("S2");
     }
     if variant(got) == "UnexpectedToken(Unit)" { return Some("D2"); }
-    if !got.starts_with("throw:") && !want.starts_with("throw:") && src.contains('.') && src.contains('T') && got.len() == want.len() { return Some("P1"); }
-    if want.starts_with("throw:InvalidDateString") && src.contains(":60") { return Some("P2"); }
-    if got.starts_with("throw:UnrecognizedToken") && !want.starts_with("throw:") { return Some("P3"); }
     None
 }

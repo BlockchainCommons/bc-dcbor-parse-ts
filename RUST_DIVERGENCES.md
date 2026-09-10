@@ -22,7 +22,7 @@ builds `dcbor-parse` at the tracked commit and replays
 `tests/vectors/vectors.json` (876 vectors: the hand-written strings of both
 implementations' suites, grammar-generated sources up to depth 4, and
 corruptions) comparing the dCBOR hex or the error variant and span (Rust byte
-offsets transcoded to UTF-16 code units). The current run: **823 match, 53
+offsets transcoded to UTF-16 code units). The current run: **831 match, 45
 expected divergences, 0 mismatches.**
 
 ## 1. True behavioral divergences
@@ -34,16 +34,16 @@ an array or map (`UnexpectedToken(Unit)`); its `''` spelling works
 everywhere. TypeScript accepts `Unit` everywhere. This is a reference
 inconsistency the port does not replicate.
 
-### Pending fixes (Phase 3)
+### Resolved in Phase 3
 
-- **P1. Fractional seconds (2 vectors).** `2023-12-25T10:30:45.123456Z`
-  keeps microseconds in the reference and is truncated to milliseconds here
-  (a JavaScript `Date`); the encoded float differs.
-- **P2. Leap seconds (2 vectors).** `…T10:30:60Z` is accepted by the
-  reference (normalised to the next minute) and rejected here.
-- **P3. Keyword runs (2 vectors).** `truex` fails to lex as a whole in the
-  reference (a Logos longest-match artefact) and lexes as `true` + junk
-  here, so `parseDcborItemPartial("truex")` succeeds here and fails there.
+- **P1, fractional seconds.** Date literals keep their exact digits
+  (`CborDate.fromYmdHms(…, { nanoseconds })`); `…45.123456Z` encodes the
+  reference's float.
+- **P2, leap seconds.** `…:60Z` is second 59 plus a second of nanoseconds,
+  as chrono represents it.
+- **P3, keyword runs.** A keyword followed by identifier characters is one
+  unrecognised token, reported at the previous token's span, as the
+  reference's lexer does.
 
 ## 2. JS-only input domain
 

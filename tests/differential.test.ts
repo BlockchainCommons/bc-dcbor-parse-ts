@@ -25,12 +25,41 @@ const BASELINE_SHA256 = readFileSync(join(here, "baseline/README.md"), "utf8").m
   /Baseline sha256: ([0-9a-f]{64})/,
 )?.[1];
 
-/** Tombstones: the only allowed differences. None yet. */
+const sourceOf = (r: Recipe): string => ("src" in r ? r.src : "");
+
+/** Tombstones: the only allowed differences, each a fix towards the reference. */
 const TOMBSTONES: {
   id: string;
   landed: boolean;
   matches: (r: Recipe, baselineOutcome: string, currentOutcome: string) => boolean;
-}[] = [];
+}[] = [
+  {
+    // P1: fractional seconds beyond milliseconds were truncated (a JS Date);
+    // the date is now computed as whole seconds + nanoseconds, as the reference does.
+    id: "T1-fractional-seconds",
+    landed: true,
+    matches: (r, a, b) =>
+      /T\d\d:\d\d:\d\d\.\d{4,}/.test(sourceOf(r)) && !a.startsWith("throw") && !b.startsWith("throw"),
+  },
+  {
+    // P2: a `:60` leap second was rejected; it is now second 59 plus one second, as the reference does.
+    id: "T2-leap-second",
+    landed: true,
+    matches: (r, a, b) =>
+      /:60(\.\d+)?(Z|[+-])/.test(sourceOf(r)) &&
+      a.startsWith("throw:InvalidDateString") &&
+      !b.startsWith("throw"),
+  },
+  {
+    // P3: a keyword running straight into identifier characters (`truex`) lexed
+    // as the keyword plus junk; it is now unrecognised as a whole, as the reference does.
+    id: "T3-keyword-runs",
+    landed: true,
+    matches: (r, _a, b) =>
+      /(true|false|null|NaN|Infinity|Unit)[a-zA-Z0-9_-]/.test(sourceOf(r)) &&
+      b.startsWith("throw:UnrecognizedToken"),
+  },
+];
 
 const baseline = baselineAdapterFor(baselineMod);
 const current = redesignedAdapterFor(src, currentDeps);

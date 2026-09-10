@@ -2,6 +2,15 @@
 
 ## 1.0.0-beta.1
 
+### Changed
+
+- **API redesign.** `parseDcbor(src, options?)`, `parseDcborPrefix` (returns `{ value, length }`), `composeDcborArray`/`composeDcborMap` throw `DcborParseError` / `DcborComposeError` (`code` string unions, typed `details`, `fullMessage(source)`); the `try…` forms return `{ ok, value } | { ok, error }` without throwing. `options.tags` / `options.knownValues` choose the registries (the globals by default). The tokenizer moved to the `/lexer` subpath. Ported to canonical `@blockchaincommons/dcbor` and the redesigned known-values, tags and uniform-resources.
+- Three fixes towards the Rust reference: date literals keep their exact fractional seconds (microseconds were truncated), a `:60` leap second is accepted, and a keyword running into identifier characters (`truex`) is unrecognised as a whole. The lexer uses sticky regular expressions (linear time on long documents; 2.5× faster overall with the canonical dcbor).
+
+### Removed
+
+- `parseDcborItem`, `parseDcborItemPartial`, `ParseResult`/`ComposeResult` and their helpers (`ok`, `err`, `isOk`, `isErr`, `unwrap`, `unwrapErr`, `errorMessage`, `errorSpan`, `fullErrorMessage`, `isDefaultError`, `defaultParseError`, `defaultSpan`), the `parseError`/`composeError` factory objects, `composeErrorMessage`; the `@blockchaincommons/dcbor-compat` dependency.
+
 Extracted from the [`paritytech/bcts`](https://github.com/paritytech/bcts) monorepo, where this library was published as `@bcts/dcbor-parse`. The public API is unchanged; see [MIGRATION.md](./MIGRATION.md).
 
 ---

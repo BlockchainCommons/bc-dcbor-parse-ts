@@ -8,9 +8,8 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { getGlobalTagsStore } from "@blockchaincommons/dcbor";
 import { registerTags } from "@blockchaincommons/tags";
-import { parseDcborItem } from "../src/parse";
-import { composeDcborArray } from "../src/compose";
-import { errorMessage } from "../src/error";
+import { tryParseDcbor, tryParseDcborPrefix } from "../src/parse";
+import { tryComposeDcborArray } from "../src/compose";
 
 // Register tags before running tests
 beforeAll(() => {
@@ -21,43 +20,43 @@ describe("Parity with Rust bc-dcbor-parse", () => {
   describe("Invalid date validation (Rust expects InvalidDateString)", () => {
     it("should error on invalid month (13)", () => {
       // Rust: check_error("2023-13-01", |e| matches!(e, ParseError::InvalidDateString(_, _)));
-      const result = parseDcborItem("2023-13-01");
+      const result = tryParseDcbor("2023-13-01");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("InvalidDateString");
+        expect(result.error.code).toBe("InvalidDateString");
       }
     });
 
     it("should error on invalid day (30 in February)", () => {
       // Rust: check_error("2023-02-30", |e| matches!(e, ParseError::InvalidDateString(_, _)));
-      const result = parseDcborItem("2023-02-30");
+      const result = tryParseDcbor("2023-02-30");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("InvalidDateString");
+        expect(result.error.code).toBe("InvalidDateString");
       }
     });
 
     it("should error on day 32", () => {
-      const result = parseDcborItem("2023-01-32");
+      const result = tryParseDcbor("2023-01-32");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("InvalidDateString");
+        expect(result.error.code).toBe("InvalidDateString");
       }
     });
 
     it("should error on month 0", () => {
-      const result = parseDcborItem("2023-00-15");
+      const result = tryParseDcbor("2023-00-15");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("InvalidDateString");
+        expect(result.error.code).toBe("InvalidDateString");
       }
     });
 
     it("should error on day 0", () => {
-      const result = parseDcborItem("2023-06-00");
+      const result = tryParseDcbor("2023-06-00");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("InvalidDateString");
+        expect(result.error.code).toBe("InvalidDateString");
       }
     });
   });
@@ -66,33 +65,33 @@ describe("Parity with Rust bc-dcbor-parse", () => {
     it("should error on base64 missing padding", () => {
       // Rust: check_error("b64'AQIDBAUGBwgJCg'", |e| matches!(e, ParseError::InvalidBase64String(_)));
       // This is missing the '==' padding that should be there
-      const result = parseDcborItem("b64'AQIDBAUGBwgJCg'");
+      const result = tryParseDcbor("b64'AQIDBAUGBwgJCg'");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("InvalidBase64String");
+        expect(result.error.code).toBe("InvalidBase64String");
       }
     });
 
     it("should accept properly padded base64", () => {
       // Same content but with proper padding
-      const result = parseDcborItem("b64'AQIDBAUGBwgJCg=='");
+      const result = tryParseDcbor("b64'AQIDBAUGBwgJCg=='");
       expect(result.ok).toBe(true);
     });
 
     it("should error on base64 with wrong padding length", () => {
       // Single = when two are needed
-      const result = parseDcborItem("b64'AQIDBAUGBwgJCg='");
+      const result = tryParseDcbor("b64'AQIDBAUGBwgJCg='");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("InvalidBase64String");
+        expect(result.error.code).toBe("InvalidBase64String");
       }
     });
 
     it("should error on base64 with invalid characters", () => {
-      const result = parseDcborItem("b64'!!!invalid!!!'");
+      const result = tryParseDcbor("b64'!!!invalid!!!'");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("InvalidBase64String");
+        expect(result.error.code).toBe("InvalidBase64String");
       }
     });
   });
@@ -111,30 +110,30 @@ describe("Parity with Rust bc-dcbor-parse", () => {
   describe("u64 tag values (Rust parity)", () => {
     it("accepts a tag value at MAX_SAFE_INTEGER", () => {
       const input = `${Number.MAX_SAFE_INTEGER}(0)`;
-      const result = parseDcborItem(input);
+      const result = tryParseDcbor(input);
       expect(result.ok).toBe(true);
     });
 
     it("accepts a tag value above MAX_SAFE_INTEGER but within u64", () => {
       // 2^53 < 9999999999999999 < 2^64-1.
       const input = "9999999999999999(0)";
-      const result = parseDcborItem(input);
+      const result = tryParseDcbor(input);
       expect(result.ok).toBe(true);
     });
 
     it("accepts the maximum u64 tag value", () => {
       // 2^64 - 1 = 18446744073709551615
       const input = "18446744073709551615(0)";
-      const result = parseDcborItem(input);
+      const result = tryParseDcbor(input);
       expect(result.ok).toBe(true);
     });
 
     it("rejects a tag value strictly greater than 2^64-1 with InvalidTagValue", () => {
       // 2^64 = 18446744073709551616 — one past the u64 maximum.
-      const result = parseDcborItem("18446744073709551616(0)");
+      const result = tryParseDcbor("18446744073709551616(0)");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("InvalidTagValue");
+        expect(result.error.code).toBe("InvalidTagValue");
       }
     });
   });
@@ -142,21 +141,21 @@ describe("Parity with Rust bc-dcbor-parse", () => {
   describe("u64 known values (Rust parity)", () => {
     it("accepts a known-value number above MAX_SAFE_INTEGER but within u64", () => {
       const input = "'9999999999999999'";
-      const result = parseDcborItem(input);
+      const result = tryParseDcbor(input);
       expect(result.ok).toBe(true);
     });
 
     it("accepts the maximum u64 known-value number", () => {
       const input = "'18446744073709551615'";
-      const result = parseDcborItem(input);
+      const result = tryParseDcbor(input);
       expect(result.ok).toBe(true);
     });
 
     it("rejects a known-value number strictly greater than 2^64-1 with InvalidKnownValue", () => {
-      const result = parseDcborItem("'18446744073709551616'");
+      const result = tryParseDcbor("'18446744073709551616'");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("InvalidKnownValue");
+        expect(result.error.code).toBe("InvalidKnownValue");
       }
     });
   });
@@ -170,26 +169,26 @@ describe("Parity with Rust bc-dcbor-parse", () => {
   // ==========================================================================
   describe("Map colon expectation (Rust parity)", () => {
     it("'{1' returns ExpectedColon, not UnexpectedEndOfInput", () => {
-      const result = parseDcborItem("{1");
+      const result = tryParseDcbor("{1");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("ExpectedColon");
+        expect(result.error.code).toBe("ExpectedColon");
       }
     });
 
     it("'{\"k\"' returns ExpectedColon, not UnexpectedEndOfInput", () => {
-      const result = parseDcborItem('{"k"');
+      const result = tryParseDcbor('{"k"');
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("ExpectedColon");
+        expect(result.error.code).toBe("ExpectedColon");
       }
     });
 
     it("'{1 2' returns ExpectedColon (non-colon token after key)", () => {
-      const result = parseDcborItem("{1 2");
+      const result = tryParseDcbor("{1 2");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("ExpectedColon");
+        expect(result.error.code).toBe("ExpectedColon");
       }
     });
   });
@@ -204,17 +203,17 @@ describe("Parity with Rust bc-dcbor-parse", () => {
   describe("Duplicate-map-key span (Rust parity)", () => {
     it("reports DuplicateMapKey with the offending key's span", () => {
       const src = '{ "a": 1, "a": 2 }';
-      const result = parseDcborItem(src);
+      const result = tryParseDcbor(src);
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("DuplicateMapKey");
-        if (result.error.type === "DuplicateMapKey") {
+        expect(result.error.code).toBe("DuplicateMapKey");
+        if (result.error.code === "DuplicateMapKey") {
           // The duplicate `"a"` key starts at position 10 (after the
           // first key, comma, and space) and runs through position 13.
-          expect(result.error.span.start).toBe(10);
-          expect(result.error.span.end).toBe(13);
+          expect(result.error.span?.start).toBe(10);
+          expect(result.error.span?.end).toBe(13);
           // Sanity-check by indexing the source.
-          expect(src.slice(result.error.span.start, result.error.span.end)).toBe('"a"');
+          expect(src.slice(result.error.span?.start, result.error.span?.end)).toBe('"a"');
         }
       }
     });
@@ -228,36 +227,27 @@ describe("Parity with Rust bc-dcbor-parse", () => {
   // this port enforced an identifier-boundary check that swallowed the
   // entire prefix into a single `UnrecognizedToken`.
   // ==========================================================================
-  describe("Keyword greediness (Rust parity)", () => {
-    it("'truex' parses Bool(true) then ExtraData on the trailing run", () => {
-      const result = parseDcborItem("truex");
+  describe("Keyword runs (Rust parity)", () => {
+    it("'truex' is unrecognised as a whole (the reference's lexer fails the run)", () => {
+      const result = tryParseDcbor("truex");
       expect(result.ok).toBe(false);
-      if (!result.ok) {
-        // The first token is Bool(true); the second token (`x`) becomes
-        // an unrecognized run that surfaces as ExtraData per
-        // parse_dcbor_item's trailing-token check.
-        expect(result.error.type).toBe("ExtraData");
-      }
+      if (!result.ok) expect(result.error.code).toBe("UnrecognizedToken");
+      expect(tryParseDcborPrefix("truex").ok).toBe(false);
     });
 
-    it("'-Infinityzz' parses NegInfinity then errors on trailing chars", () => {
-      const result = parseDcborItem("-Infinityzz");
-      expect(result.ok).toBe(false);
-      if (!result.ok) {
-        // After NegInfinity is emitted, the parser sees extra data.
-        expect(result.error.type).toBe("ExtraData");
-      }
+    it("'-Infinityzz' likewise; 'true ' and 'true)' still lex the keyword", () => {
+      expect(tryParseDcbor("-Infinityzz").ok).toBe(false);
+      expect(tryParseDcbor("true ").ok).toBe(true);
+      const prefix = tryParseDcborPrefix("true)");
+      expect(prefix.ok && prefix.value.length).toBe(4);
     });
   });
 
-  // ==========================================================================
-  // // (empty inline comment) parity
-  // ==========================================================================
   describe("Empty inline comment (Rust parity)", () => {
     it("accepts // as an empty inline comment", () => {
       // Rust skip regex `/[^/]*/` matches the empty body. The lexer
       // should treat `//` as a no-op skip and parse the trailing `42`.
-      const result = parseDcborItem("//42");
+      const result = tryParseDcbor("//42");
       expect(result.ok).toBe(true);
     });
   });
@@ -270,12 +260,12 @@ describe("Parity with Rust bc-dcbor-parse", () => {
   // ==========================================================================
   describe("composeErrorMessage delegates to errorMessage (Rust parity)", () => {
     it("renders ParseError variant via Display, not the variant tag", () => {
-      const result = composeDcborArray([""]);
+      const result = tryComposeDcborArray([""]);
       expect(result.ok).toBe(false);
-      if (!result.ok && result.error.type === "ParseError") {
+      if (!result.ok && result.error.code === "ParseError") {
         // Sanity: the inner ParseError is EmptyInput.
-        expect(result.error.error.type).toBe("EmptyInput");
-        expect(errorMessage(result.error.error)).toBe("Empty input");
+        expect(result.error.cause?.code).toBe("EmptyInput");
+        expect(result.error.cause?.message).toBe("Empty input");
       }
     });
   });

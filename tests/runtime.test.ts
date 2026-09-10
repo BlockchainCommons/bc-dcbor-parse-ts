@@ -15,7 +15,7 @@ import {
   getGlobalTagsStore,
 } from "@blockchaincommons/dcbor";
 import { registerTags } from "@blockchaincommons/tags";
-import { parseDcborItem } from "../src/parse";
+import { tryParseDcbor } from "../src/parse";
 import { diagnostic } from "@blockchaincommons/dcbor/diagnostic";
 
 // Register tags before running tests
@@ -26,7 +26,7 @@ beforeAll(() => {
 describe("runtime functionality", () => {
   describe("basic functionality preserved", () => {
     it("should parse basic string", () => {
-      const result = parseDcborItem('"Hello, World!"');
+      const result = tryParseDcbor('"Hello, World!"');
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(diagnostic(result.value)).toBe('"Hello, World!"');
@@ -34,7 +34,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse empty string", () => {
-      const result = parseDcborItem('""');
+      const result = tryParseDcbor('""');
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(diagnostic(result.value)).toBe('""');
@@ -42,7 +42,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse hex string", () => {
-      const result = parseDcborItem("h'deadbeef'");
+      const result = tryParseDcbor("h'deadbeef'");
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(diagnostic(result.value)).toBe("h'deadbeef'");
@@ -50,7 +50,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse empty hex string", () => {
-      const result = parseDcborItem("h''");
+      const result = tryParseDcbor("h''");
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(diagnostic(result.value)).toBe("h''");
@@ -58,7 +58,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse basic base64", () => {
-      const result = parseDcborItem("b64'SGVsbG8='");
+      const result = tryParseDcbor("b64'SGVsbG8='");
       expect(result.ok).toBe(true);
       if (result.ok) {
         // "Hello" in base64
@@ -68,7 +68,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse date (date only)", () => {
-      const result = parseDcborItem("2023-12-25");
+      const result = tryParseDcbor("2023-12-25");
       expect(result.ok).toBe(true);
       if (result.ok) {
         const expected = CborDate.fromYmd(2023, 12, 25);
@@ -77,7 +77,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse basic array", () => {
-      const result = parseDcborItem("[\"hello\", h'dead', 42]");
+      const result = tryParseDcbor("[\"hello\", h'dead', 42]");
       expect(result.ok).toBe(true);
       if (result.ok) {
         const arr = expectArray(result.value);
@@ -89,7 +89,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse basic map", () => {
-      const result = parseDcborItem('{"key": "value", "number": 123}');
+      const result = tryParseDcbor('{"key": "value", "number": 123}');
       expect(result.ok).toBe(true);
       if (result.ok) {
         const map = expectMap(result.value);
@@ -115,7 +115,7 @@ describe("runtime functionality", () => {
       ];
 
       for (const input of inputs) {
-        const result = parseDcborItem(input);
+        const result = tryParseDcbor(input);
         expect(result.ok).toBe(true);
       }
     });
@@ -123,7 +123,7 @@ describe("runtime functionality", () => {
 
   describe("hex parsing comprehensive", () => {
     it("should parse empty hex string", () => {
-      const result = parseDcborItem("h''");
+      const result = tryParseDcbor("h''");
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(asBytes(result.value)).toEqual(new Uint8Array([]));
@@ -131,7 +131,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse single byte hex", () => {
-      const result = parseDcborItem("h'FF'");
+      const result = tryParseDcbor("h'FF'");
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(asBytes(result.value)).toEqual(new Uint8Array([0xff]));
@@ -139,7 +139,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse lowercase hex", () => {
-      const result = parseDcborItem("h'deadbeef'");
+      const result = tryParseDcbor("h'deadbeef'");
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(asBytes(result.value)).toEqual(new Uint8Array([0xde, 0xad, 0xbe, 0xef]));
@@ -147,7 +147,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse uppercase hex", () => {
-      const result = parseDcborItem("h'DEADBEEF'");
+      const result = tryParseDcbor("h'DEADBEEF'");
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(asBytes(result.value)).toEqual(new Uint8Array([0xde, 0xad, 0xbe, 0xef]));
@@ -155,7 +155,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse mixed case hex", () => {
-      const result = parseDcborItem("h'DeAdBeEf'");
+      const result = tryParseDcbor("h'DeAdBeEf'");
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(asBytes(result.value)).toEqual(new Uint8Array([0xde, 0xad, 0xbe, 0xef]));
@@ -165,7 +165,7 @@ describe("runtime functionality", () => {
 
   describe("complex string escapes", () => {
     it("should parse string with escaped quotes", () => {
-      const result = parseDcborItem('"She said \\"Hello\\""');
+      const result = tryParseDcbor('"She said \\"Hello\\""');
       expect(result.ok).toBe(true);
       if (result.ok) {
         // The parser stores literal escape sequences
@@ -175,7 +175,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse string with backslash escapes", () => {
-      const result = parseDcborItem('"Path\\\\to\\\\file"');
+      const result = tryParseDcbor('"Path\\\\to\\\\file"');
       expect(result.ok).toBe(true);
       if (result.ok) {
         const text = asText(result.value);
@@ -184,7 +184,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse string with escape sequences", () => {
-      const result = parseDcborItem('"Line 1\\nLine 2\\tTabbed"');
+      const result = tryParseDcbor('"Line 1\\nLine 2\\tTabbed"');
       expect(result.ok).toBe(true);
       if (result.ok) {
         // Parser stores literal backslash-n, not newline
@@ -195,7 +195,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse string with unicode escapes", () => {
-      const result = parseDcborItem('"Unicode: \\u0041\\u0042\\u0043"');
+      const result = tryParseDcbor('"Unicode: \\u0041\\u0042\\u0043"');
       expect(result.ok).toBe(true);
       if (result.ok) {
         // Parser stores literal unicode escapes
@@ -205,19 +205,19 @@ describe("runtime functionality", () => {
     });
 
     it("should parse valid escape sequence", () => {
-      const result = parseDcborItem('"Valid escape: \\""');
+      const result = tryParseDcbor('"Valid escape: \\""');
       expect(result.ok).toBe(true);
     });
 
     it("should parse valid unicode escape", () => {
-      const result = parseDcborItem('"Valid unicode: \\u1234"');
+      const result = tryParseDcbor('"Valid unicode: \\u1234"');
       expect(result.ok).toBe(true);
     });
   });
 
   describe("complex date formats", () => {
     it("should parse date with timezone Z", () => {
-      const result = parseDcborItem("2023-12-25T10:30:45Z");
+      const result = tryParseDcbor("2023-12-25T10:30:45Z");
       expect(result.ok).toBe(true);
       if (result.ok) {
         const expected = CborDate.fromString("2023-12-25T10:30:45Z");
@@ -226,7 +226,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse date with positive timezone offset", () => {
-      const result = parseDcborItem("2023-12-25T10:30:45+05:30");
+      const result = tryParseDcbor("2023-12-25T10:30:45+05:30");
       expect(result.ok).toBe(true);
       if (result.ok) {
         const expected = CborDate.fromString("2023-12-25T10:30:45+05:30");
@@ -235,7 +235,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse date with negative timezone offset", () => {
-      const result = parseDcborItem("2023-12-25T10:30:45-08:00");
+      const result = tryParseDcbor("2023-12-25T10:30:45-08:00");
       expect(result.ok).toBe(true);
       if (result.ok) {
         const expected = CborDate.fromString("2023-12-25T10:30:45-08:00");
@@ -244,7 +244,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse date with milliseconds", () => {
-      const result = parseDcborItem("2023-12-25T10:30:45.123Z");
+      const result = tryParseDcbor("2023-12-25T10:30:45.123Z");
       expect(result.ok).toBe(true);
       if (result.ok) {
         const expected = CborDate.fromString("2023-12-25T10:30:45.123Z");
@@ -253,10 +253,13 @@ describe("runtime functionality", () => {
     });
 
     it("should parse date with microseconds", () => {
-      const result = parseDcborItem("2023-12-25T10:30:45.123456Z");
+      const result = tryParseDcbor("2023-12-25T10:30:45.123456Z");
       expect(result.ok).toBe(true);
       if (result.ok) {
-        const expected = CborDate.fromString("2023-12-25T10:30:45.123456Z");
+        // exact microseconds, as the reference keeps them
+        const expected = CborDate.fromYmdHms(2023, 12, 25, 10, 30, 45, {
+          nanoseconds: 123_456_000,
+        });
         expect(diagnostic(result.value)).toBe(diagnostic(expected.toCbor()));
       }
     });
@@ -264,7 +267,7 @@ describe("runtime functionality", () => {
 
   describe("base64 requirements", () => {
     it("should parse base64 with minimum 2-character requirement", () => {
-      const result = parseDcborItem("b64'QQ=='");
+      const result = tryParseDcbor("b64'QQ=='");
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(asBytes(result.value)).toEqual(new Uint8Array([0x41])); // 'A'
@@ -272,7 +275,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse longer base64 strings", () => {
-      const result = parseDcborItem("b64'SGVsbG8gV29ybGQ='");
+      const result = tryParseDcbor("b64'SGVsbG8gV29ybGQ='");
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(asBytes(result.value)).toEqual(new TextEncoder().encode("Hello World"));
@@ -280,7 +283,7 @@ describe("runtime functionality", () => {
     });
 
     it("should parse base64 without padding", () => {
-      const result = parseDcborItem("b64'SGVsbG8='");
+      const result = tryParseDcbor("b64'SGVsbG8='");
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(asBytes(result.value)).toEqual(new TextEncoder().encode("Hello"));
@@ -298,7 +301,7 @@ describe("runtime functionality", () => {
         "Unicode: \\\\u0041\\\\u0042\\\\u0043"
       ]`;
 
-      const result = parseDcborItem(complexArray);
+      const result = tryParseDcbor(complexArray);
       expect(result.ok).toBe(true);
       if (result.ok) {
         const array = expectArray(result.value);
@@ -323,7 +326,7 @@ describe("runtime functionality", () => {
         "timestamp": 2023-12-25T10:30:45-08:00
       }`;
 
-      const result = parseDcborItem(complexMap);
+      const result = tryParseDcbor(complexMap);
       expect(result.ok).toBe(true);
       if (result.ok) {
         const map = expectMap(result.value);
@@ -336,32 +339,32 @@ describe("runtime functionality", () => {
 
   describe("base64 minimum length enforcement", () => {
     it("should reject empty base64", () => {
-      const result = parseDcborItem("b64''");
+      const result = tryParseDcbor("b64''");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("InvalidBase64String");
+        expect(result.error.code).toBe("InvalidBase64String");
       }
     });
 
     it("should reject single character base64", () => {
-      const result = parseDcborItem("b64'A'");
+      const result = tryParseDcbor("b64'A'");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("InvalidBase64String");
+        expect(result.error.code).toBe("InvalidBase64String");
       }
     });
   });
 
   describe("date with fractional seconds", () => {
     it("should parse date with fractional seconds", () => {
-      const result = parseDcborItem("2023-12-25T12:30:45.123Z");
+      const result = tryParseDcbor("2023-12-25T12:30:45.123Z");
       expect(result.ok).toBe(true);
     });
   });
 
   describe("date with timezone offset", () => {
     it("should parse date with timezone offset", () => {
-      const result = parseDcborItem("2023-12-25T12:30:45+05:30");
+      const result = tryParseDcbor("2023-12-25T12:30:45+05:30");
       expect(result.ok).toBe(true);
     });
   });
@@ -370,7 +373,7 @@ describe("runtime functionality", () => {
     it("should reject strings with control characters", () => {
       // String containing control character \x01
       const input = '"hello\x01world"';
-      const result = parseDcborItem(input);
+      const result = tryParseDcbor(input);
       expect(result.ok).toBe(false);
     });
   });
@@ -379,24 +382,24 @@ describe("runtime functionality", () => {
     it("should reject strings with unescaped quotes", () => {
       // Contains unescaped quote in middle
       const input = '"hello"world"';
-      const result = parseDcborItem(input);
+      const result = tryParseDcbor(input);
       expect(result.ok).toBe(false);
     });
   });
 
   describe("runtime pattern validation", () => {
     it("should validate complex date with microseconds and timezone", () => {
-      const result = parseDcborItem("2023-12-25T10:30:45.123456Z");
+      const result = tryParseDcbor("2023-12-25T10:30:45.123456Z");
       expect(result.ok).toBe(true);
     });
 
     it("should validate string with valid escape sequences", () => {
-      const result = parseDcborItem('"line1\\nline2\\ttab\\u0041end"');
+      const result = tryParseDcbor('"line1\\nline2\\ttab\\u0041end"');
       expect(result.ok).toBe(true);
     });
 
     it("should validate proper base64", () => {
-      const result = parseDcborItem("b64'SGVsbG8gV29ybGQ='");
+      const result = tryParseDcbor("b64'SGVsbG8gV29ybGQ='");
       expect(result.ok).toBe(true);
     });
 
@@ -407,7 +410,7 @@ describe("runtime functionality", () => {
         "timestamp": 2023-12-25T10:30:45.123Z,
         "binary": h'deadbeef'
       }`;
-      const result = parseDcborItem(complexInput);
+      const result = tryParseDcbor(complexInput);
       expect(result.ok).toBe(true);
     });
   });

@@ -31,6 +31,17 @@
       },
       "default": "./dist/index.mjs"
     },
+    "./lexer": {
+      "import": {
+        "types": "./dist/lexer.d.mts",
+        "default": "./dist/lexer.mjs"
+      },
+      "require": {
+        "types": "./dist/lexer.d.cts",
+        "default": "./dist/lexer.cjs"
+      },
+      "default": "./dist/lexer.mjs"
+    },
     "./package.json": "./package.json"
   },
   "files": [

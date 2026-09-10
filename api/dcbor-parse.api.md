@@ -4,202 +4,168 @@
 
 ```ts
 
-import { Cbor } from '@blockchaincommons/dcbor-compat';
-import { CborDate } from '@blockchaincommons/dcbor-compat';
+import { Cbor } from '@blockchaincommons/dcbor';
+import { CborDate } from '@blockchaincommons/dcbor';
+import { KnownValuesStore } from '@blockchaincommons/known-values';
+import { ReadonlyTagsStore } from '@blockchaincommons/dcbor';
 import { UR } from '@blockchaincommons/uniform-resources';
 
 // @public
-export function composeDcborArray(array: readonly string[]): ComposeResult<Cbor>;
+export function composeDcborArray(items: readonly string[], options?: ParseOptions): Cbor;
 
 // @public
-export function composeDcborMap(array: readonly string[]): ComposeResult<Cbor>;
+export function composeDcborMap(items: readonly string[], options?: ParseOptions): Cbor;
 
 // @public
-export function composeErr<T>(error: ComposeError): ComposeResult<T>;
-
-// @public
-export type ComposeError = {
-    readonly type: "OddMapLength";
-} | {
-    readonly type: "DuplicateMapKey";
-} | {
-    readonly type: "ParseError";
-    readonly error: ParseError;
-};
-
-// @public (undocumented)
-export const composeError: {
-    oddMapLength(): ComposeError;
-    duplicateMapKey(): ComposeError;
-    parseError(error: ParseError): ComposeError;
-};
-
-// @public
-export function composeErrorMessage(error: ComposeError): string;
-
-// @public
-export function composeOk<T>(value: T): ComposeResult<T>;
-
-// @public
-export type ComposeResult<T> = {
-    readonly ok: true;
-    readonly value: T;
-} | {
-    readonly ok: false;
-    readonly error: ComposeError;
-};
-
-// @public
-export function defaultParseError(): ParseError;
-
-// @public
-export function defaultSpan(): Span;
-
-// @public
-export function err<T>(error: ParseError): ParseResult<T>;
-
-// @public
-export function errorMessage(error: ParseError): string;
-
-// @public
-export function errorSpan(error: ParseError): Span | undefined;
-
-// @public
-export function fullErrorMessage(error: ParseError, source: string): string;
-
-// @public
-export function isDefaultError(error: ParseError): boolean;
-
-// @public
-export function isErr<T>(result: ParseResult<T>): result is {
-    ok: false;
-    error: ParseError;
-};
-
-// @public
-export function isOk<T>(result: ParseResult<T>): result is {
-    ok: true;
-    value: T;
-};
-
-// @public
-export class Lexer {
-    constructor(source: string);
-    next(): ParseResult<Token> | undefined;
-    slice(): string;
-    span(): Span;
+export class DcborComposeError extends Error {
+    constructor(code: DcborComposeErrorCode, message: string, cause?: DcborParseError);
+    // (undocumented)
+    readonly cause?: DcborParseError;
+    // (undocumented)
+    readonly code: DcborComposeErrorCode;
+    // (undocumented)
+    static duplicateMapKey(): DcborComposeError;
+    // (undocumented)
+    static isDcborComposeError(e: unknown): e is DcborComposeError;
+    // (undocumented)
+    static oddMapLength(): DcborComposeError;
+    // (undocumented)
+    static parseError(cause: DcborParseError): DcborComposeError;
 }
 
 // @public
-export function ok<T>(value: T): ParseResult<T>;
-
-// @public
-export function parseDcborItem(src: string): ParseResult<Cbor>;
-
-// @public
-export function parseDcborItemPartial(src: string): ParseResult<[Cbor, number]>;
-
-// @public
-export type ParseError = {
-    readonly type: "EmptyInput";
-} | {
-    readonly type: "UnexpectedEndOfInput";
-} | {
-    readonly type: "ExtraData";
-    readonly span: Span;
-} | {
-    readonly type: "UnexpectedToken";
-    readonly token: Token;
-    readonly span: Span;
-} | {
-    readonly type: "UnrecognizedToken";
-    readonly span: Span;
-} | {
-    readonly type: "ExpectedComma";
-    readonly span: Span;
-} | {
-    readonly type: "ExpectedColon";
-    readonly span: Span;
-} | {
-    readonly type: "UnmatchedParentheses";
-    readonly span: Span;
-} | {
-    readonly type: "UnmatchedBraces";
-    readonly span: Span;
-} | {
-    readonly type: "ExpectedMapKey";
-    readonly span: Span;
-} | {
-    readonly type: "InvalidTagValue";
-    readonly value: string;
-    readonly span: Span;
-} | {
-    readonly type: "UnknownTagName";
-    readonly name: string;
-    readonly span: Span;
-} | {
-    readonly type: "InvalidHexString";
-    readonly span: Span;
-} | {
-    readonly type: "InvalidBase64String";
-    readonly span: Span;
-} | {
-    readonly type: "UnknownUrType";
-    readonly urType: string;
-    readonly span: Span;
-} | {
-    readonly type: "InvalidUr";
-    readonly message: string;
-    readonly span: Span;
-} | {
-    readonly type: "InvalidKnownValue";
-    readonly value: string;
-    readonly span: Span;
-} | {
-    readonly type: "UnknownKnownValueName";
-    readonly name: string;
-    readonly span: Span;
-} | {
-    readonly type: "InvalidDateString";
-    readonly dateString: string;
-    readonly span: Span;
-} | {
-    readonly type: "DuplicateMapKey";
-    readonly span: Span;
-};
-
-// @public (undocumented)
-export const parseError: {
-    emptyInput(): ParseError;
-    unexpectedEndOfInput(): ParseError;
-    extraData(span: Span): ParseError;
-    unexpectedToken(token: Token, span: Span): ParseError;
-    unrecognizedToken(span: Span): ParseError;
-    expectedComma(span: Span): ParseError;
-    expectedColon(span: Span): ParseError;
-    unmatchedParentheses(span: Span): ParseError;
-    unmatchedBraces(span: Span): ParseError;
-    expectedMapKey(span: Span): ParseError;
-    invalidTagValue(value: string, span: Span): ParseError;
-    unknownTagName(name: string, span: Span): ParseError;
-    invalidHexString(span: Span): ParseError;
-    invalidBase64String(span: Span): ParseError;
-    unknownUrType(urType: string, span: Span): ParseError;
-    invalidUr(message: string, span: Span): ParseError;
-    invalidKnownValue(value: string, span: Span): ParseError;
-    unknownKnownValueName(name: string, span: Span): ParseError;
-    invalidDateString(dateString: string, span: Span): ParseError;
-    duplicateMapKey(span: Span): ParseError;
+export const DcborComposeErrorCode: {
+    readonly OddMapLength: "OddMapLength";
+    readonly DuplicateMapKey: "DuplicateMapKey";
+    readonly ParseError: "ParseError";
 };
 
 // @public
-export type ParseResult<T> = {
+export type DcborComposeErrorCode = (typeof DcborComposeErrorCode)[keyof typeof DcborComposeErrorCode];
+
+// @public
+export class DcborParseError extends Error {
+    constructor(code: DcborParseErrorCode, message: string, details?: DcborParseErrorDetails);
+    // (undocumented)
+    readonly code: DcborParseErrorCode;
+    // (undocumented)
+    readonly details: DcborParseErrorDetails;
+    // (undocumented)
+    static duplicateMapKey(span: Span): DcborParseError;
+    // (undocumented)
+    static emptyInput(): DcborParseError;
+    // (undocumented)
+    static expectedColon(span: Span): DcborParseError;
+    // (undocumented)
+    static expectedComma(span: Span): DcborParseError;
+    // (undocumented)
+    static expectedMapKey(span: Span): DcborParseError;
+    // (undocumented)
+    static extraData(span: Span): DcborParseError;
+    fullMessage(source: string): string;
+    // (undocumented)
+    static invalidBase64String(span: Span): DcborParseError;
+    // (undocumented)
+    static invalidDateString(dateString: string, span: Span): DcborParseError;
+    // (undocumented)
+    static invalidHexString(span: Span): DcborParseError;
+    // (undocumented)
+    static invalidKnownValue(value: string, span: Span): DcborParseError;
+    // (undocumented)
+    static invalidTagValue(value: string, span: Span): DcborParseError;
+    // (undocumented)
+    static invalidUr(message: string, span: Span): DcborParseError;
+    // (undocumented)
+    static isDcborParseError(e: unknown): e is DcborParseError;
+    get span(): Span | undefined;
+    // (undocumented)
+    static unexpectedEndOfInput(): DcborParseError;
+    // Warning: (ae-forgotten-export) The symbol "Token" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    static unexpectedToken(token: Token, span: Span): DcborParseError;
+    // (undocumented)
+    static unknownKnownValueName(name: string, span: Span): DcborParseError;
+    // (undocumented)
+    static unknownTagName(name: string, span: Span): DcborParseError;
+    // (undocumented)
+    static unknownUrType(urType: string, span: Span): DcborParseError;
+    // (undocumented)
+    static unmatchedBraces(span: Span): DcborParseError;
+    // (undocumented)
+    static unmatchedParentheses(span: Span): DcborParseError;
+    // (undocumented)
+    static unrecognizedToken(span: Span): DcborParseError;
+}
+
+// @public
+export const DcborParseErrorCode: {
+    readonly EmptyInput: "EmptyInput";
+    readonly UnexpectedEndOfInput: "UnexpectedEndOfInput";
+    readonly ExtraData: "ExtraData";
+    readonly UnexpectedToken: "UnexpectedToken";
+    readonly UnrecognizedToken: "UnrecognizedToken";
+    readonly ExpectedComma: "ExpectedComma";
+    readonly ExpectedColon: "ExpectedColon";
+    readonly UnmatchedParentheses: "UnmatchedParentheses";
+    readonly UnmatchedBraces: "UnmatchedBraces";
+    readonly ExpectedMapKey: "ExpectedMapKey";
+    readonly InvalidTagValue: "InvalidTagValue";
+    readonly UnknownTagName: "UnknownTagName";
+    readonly InvalidHexString: "InvalidHexString";
+    readonly InvalidBase64String: "InvalidBase64String";
+    readonly UnknownUrType: "UnknownUrType";
+    readonly InvalidUr: "InvalidUr";
+    readonly InvalidKnownValue: "InvalidKnownValue";
+    readonly UnknownKnownValueName: "UnknownKnownValueName";
+    readonly InvalidDateString: "InvalidDateString";
+    readonly DuplicateMapKey: "DuplicateMapKey";
+};
+
+// @public
+export type DcborParseErrorCode = (typeof DcborParseErrorCode)[keyof typeof DcborParseErrorCode];
+
+// @public
+export interface DcborParseErrorDetails {
+    readonly dateString?: string;
+    readonly message?: string;
+    readonly name?: string;
+    readonly span?: Span;
+    readonly token?: Token;
+    readonly urType?: string;
+    readonly value?: string;
+}
+
+// @public
+export type DcborResult<T, E> = {
     readonly ok: true;
     readonly value: T;
 } | {
     readonly ok: false;
-    readonly error: ParseError;
+    readonly error: E;
 };
+
+// @public
+export function parseDcbor(src: string, options?: ParseOptions): Cbor;
+
+// @public
+export function parseDcborPrefix(src: string, options?: ParseOptions): ParsedPrefix;
+
+// @public
+export interface ParsedPrefix {
+    // (undocumented)
+    readonly length: number;
+    // (undocumented)
+    readonly value: Cbor;
+}
+
+// @public
+export interface ParseOptions {
+    // (undocumented)
+    knownValues?: KnownValuesStore;
+    // (undocumented)
+    tags?: ReadonlyTagsStore;
+}
 
 // @public
 export interface Span {
@@ -213,100 +179,19 @@ export interface Span {
 export function span(start: number, end: number): Span;
 
 // @public
-export type Token = {
-    readonly type: "Bool";
-    readonly value: boolean;
-} | {
-    readonly type: "BraceOpen";
-} | {
-    readonly type: "BraceClose";
-} | {
-    readonly type: "BracketOpen";
-} | {
-    readonly type: "BracketClose";
-} | {
-    readonly type: "ParenthesisOpen";
-} | {
-    readonly type: "ParenthesisClose";
-} | {
-    readonly type: "Colon";
-} | {
-    readonly type: "Comma";
-} | {
-    readonly type: "Null";
-} | {
-    readonly type: "NaN";
-} | {
-    readonly type: "Infinity";
-} | {
-    readonly type: "NegInfinity";
-} | {
-    readonly type: "ByteStringHex";
-    readonly value: Uint8Array;
-} | {
-    readonly type: "ByteStringBase64";
-    readonly value: Uint8Array;
-} | {
-    readonly type: "DateLiteral";
-    readonly value: CborDate;
-} | {
-    readonly type: "Number";
-    readonly value: number;
-} | {
-    readonly type: "String";
-    readonly value: string;
-} | {
-    readonly type: "TagValue";
-    readonly value: number | bigint;
-} | {
-    readonly type: "TagName";
-    readonly value: string;
-} | {
-    readonly type: "KnownValueNumber";
-    readonly value: number | bigint;
-} | {
-    readonly type: "KnownValueName";
-    readonly value: string;
-} | {
-    readonly type: "Unit";
-} | {
-    readonly type: "UR";
-    readonly value: UR;
-};
-
-// @public (undocumented)
-export const token: {
-    bool(value: boolean): Token;
-    braceOpen(): Token;
-    braceClose(): Token;
-    bracketOpen(): Token;
-    bracketClose(): Token;
-    parenthesisOpen(): Token;
-    parenthesisClose(): Token;
-    colon(): Token;
-    comma(): Token;
-    null(): Token;
-    nan(): Token;
-    infinity(): Token;
-    negInfinity(): Token;
-    byteStringHex(value: Uint8Array): Token;
-    byteStringBase64(value: Uint8Array): Token;
-    dateLiteral(value: CborDate): Token;
-    number(value: number): Token;
-    string(value: string): Token;
-    tagValue(value: number | bigint): Token;
-    tagName(value: string): Token;
-    knownValueNumber(value: number | bigint): Token;
-    knownValueName(value: string): Token;
-    unit(): Token;
-    ur(value: UR): Token;
-};
+export function spanToByteOffsets(source: string, s: Span): Span;
 
 // @public
-export function unwrap<T>(result: ParseResult<T>): T;
+export function tryComposeDcborArray(items: readonly string[], options?: ParseOptions): DcborResult<Cbor, DcborComposeError>;
 
 // @public
-export function unwrapErr<T>(result: ParseResult<T>): ParseError;
+export function tryComposeDcborMap(items: readonly string[], options?: ParseOptions): DcborResult<Cbor, DcborComposeError>;
+
+// @public
+export function tryParseDcbor(src: string, options?: ParseOptions): DcborResult<Cbor, DcborParseError>;
+
+// @public
+export function tryParseDcborPrefix(src: string, options?: ParseOptions): DcborResult<ParsedPrefix, DcborParseError>;
 
 // (No @packageDocumentation comment for this package)
 

@@ -135,12 +135,18 @@ export function redesignedAdapterFor(m: any, deps: { registerTags: () => void })
     composeMap: (items) => m.composeDcborMap(items).toData(),
     errorCode: (e) => {
       const x: any = e;
+      const parseShape = (e: any): unknown => ({
+        type: e.code,
+        token: e.details?.token,
+        span: e.details?.span,
+      });
       if (x?.name === "DcborComposeError") {
-        if (x.code === "ParseError") return `Compose:ParseError:${describeError(x.cause)}`;
+        if (x.code === "ParseError")
+          return `Compose:ParseError:${describeError(parseShape(x.cause))}`;
         return `Compose:${x.code}`;
       }
       if (x?.name !== "DcborParseError") return undefined;
-      return describeError({ type: x.code, token: x.details?.token, span: x.details?.span });
+      return describeError(parseShape(x));
     },
   };
 }

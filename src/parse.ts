@@ -1,438 +1,332 @@
 /**
- * Copyright © 2023-2026 Blockchain Commons, LLC
- * Copyright © 2025-2026 Parity Technologies
- *
- *
- * @blockchaincommons/dcbor-parse - Parse module
- *
- * This is a 1:1 TypeScript port of bc-dcbor-parse-rust parse.rs
- *
- * @module dcbor-parse/parse
+ * The parser: dCBOR diagnostic notation → `Cbor`.
  */
-
 import {
   type Cbor,
   cbor,
   CborMap,
   getGlobalTagsStore,
   taggedValue,
+  type ReadonlyTagsStore,
 } from "@blockchaincommons/dcbor";
-import { KnownValue, getGlobalKnownValuesStore } from "@blockchaincommons/known-values";
-import type { UR } from "@blockchaincommons/uniform-resources";
 import {
-  type Span,
-  span,
-  parseError as PE,
-  type ParseResult,
-  ok,
-  err,
-  isDefaultError,
-} from "./error";
+  KnownValue,
+  getGlobalKnownValuesStore,
+  type KnownValuesStore,
+} from "@blockchaincommons/known-values";
+import type { UR } from "@blockchaincommons/uniform-resources";
+import { type Span, span, DcborParseError, type DcborResult } from "./error";
 import { type Token, Lexer } from "./token";
 
-/**
- * Parses a dCBOR item from a string input.
- *
- * This function takes a string slice containing a dCBOR diagnostic notation
- * encoded value and attempts to parse it into a `Cbor` object. If the input
- * contains extra tokens after a valid item, an error is returned.
- *
- * @param src - A string containing the dCBOR-encoded data.
- * @returns `Ok(Cbor)` if parsing is successful and the input contains exactly one
- *   valid dCBOR item, which itself might be an atomic value like a number or
- *   string, or a complex value like an array or map.
- *   `Err(ParseError)` if parsing fails or if extra tokens are found after the item.
- *
- * @example
- * ```typescript
- * const result = parseDcborItem("[1, 2, 3]");
- * if (result.ok) {
- *   console.log(result.value.toDiagnostic()); // "[1, 2, 3]"
- * }
- * ```
- */
-export function parseDcborItem(src: string): ParseResult<Cbor> {
-  const lexer = new Lexer(src);
-  const firstTokenResult = expectToken(lexer);
+/** Where tag names and known-value names resolve; the global stores by default. */
+export interface ParseOptions {
+  tags?: ReadonlyTagsStore;
+  knownValues?: KnownValuesStore;
+}
 
-  if (!firstTokenResult.ok) {
-    if (firstTokenResult.error.type === "UnexpectedEndOfInput") {
-      return err(PE.emptyInput());
-    }
-    return firstTokenResult;
-  }
-
-  const parseResult = parseItemToken(firstTokenResult.value, lexer);
-  if (!parseResult.ok) {
-    return parseResult;
-  }
-
-  // Check for extra data
-  const nextToken = lexer.next();
-  if (nextToken !== undefined) {
-    return err(PE.extraData(lexer.span()));
-  }
-
-  return parseResult;
+/** A parsed prefix: the item and how many UTF-16 code units of the source it took. */
+export interface ParsedPrefix {
+  readonly value: Cbor;
+  readonly length: number;
 }
 
 /**
- * Parses a dCBOR item from the beginning of a string and returns the parsed
- * `Cbor` along with the number of bytes consumed.
+ * Parses one dCBOR item from `src`, which must contain nothing else but
+ * whitespace and comments.
  *
- * Unlike `parseDcborItem`, this function succeeds even if additional
- * characters follow the first item. The returned index points to the first
- * unparsed character after skipping any trailing whitespace or comments.
- *
- * @param src - A string containing the dCBOR-encoded data.
- * @returns `Ok([Cbor, number])` with the parsed item and bytes consumed.
- *
- * @example
- * ```typescript
- * const result = parseDcborItemPartial("true )");
- * if (result.ok) {
- *   const [cbor, used] = result.value;
- *   console.log(cbor.toDiagnostic()); // "true"
- *   console.log(used); // 5
- * }
- * ```
+ * @throws {DcborParseError}
  */
-export function parseDcborItemPartial(src: string): ParseResult<[Cbor, number]> {
+export function parseDcbor(src: string, options: ParseOptions = {}): Cbor {
   const lexer = new Lexer(src);
-  const firstTokenResult = expectToken(lexer);
+  const first = expectFirstToken(lexer);
+  const value = parseItemToken(first, lexer, options);
+  if (hasMore(lexer)) {
+    throw DcborParseError.extraData(lexer.span());
+  }
+  return value;
+}
 
-  if (!firstTokenResult.ok) {
-    if (firstTokenResult.error.type === "UnexpectedEndOfInput") {
-      return err(PE.emptyInput());
+/** Whether anything but whitespace and comments follows; unrecognised text counts as more. */
+function hasMore(lexer: Lexer): boolean {
+  try {
+    return lexer.next() !== undefined;
+  } catch (e) {
+    if (DcborParseError.isDcborParseError(e)) return true;
+    throw e;
+  }
+}
+
+/** `parseDcbor` as a `Result` instead of a throw. */
+export function tryParseDcbor(
+  src: string,
+  options: ParseOptions = {},
+): DcborResult<Cbor, DcborParseError> {
+  try {
+    return { ok: true, value: parseDcbor(src, options) };
+  } catch (e) {
+    if (DcborParseError.isDcborParseError(e)) return { ok: false, error: e };
+    throw e;
+  }
+}
+
+/**
+ * Parses the first dCBOR item of `src` and reports how much of the source
+ * it consumed, leaving the rest for the caller.
+ *
+ * @throws {DcborParseError}
+ */
+export function parseDcborPrefix(src: string, options: ParseOptions = {}): ParsedPrefix {
+  const lexer = new Lexer(src);
+  const first = expectFirstToken(lexer);
+  const value = parseItemToken(first, lexer, options);
+  const length = hasMore(lexer) ? lexer.span().start : src.length;
+  return { value, length };
+}
+
+/** `parseDcborPrefix` as a `Result` instead of a throw. */
+export function tryParseDcborPrefix(
+  src: string,
+  options: ParseOptions = {},
+): DcborResult<ParsedPrefix, DcborParseError> {
+  try {
+    return { ok: true, value: parseDcborPrefix(src, options) };
+  } catch (e) {
+    if (DcborParseError.isDcborParseError(e)) return { ok: false, error: e };
+    throw e;
+  }
+}
+
+function expectFirstToken(lexer: Lexer): Token {
+  try {
+    return expectToken(lexer);
+  } catch (e) {
+    if (DcborParseError.isDcborParseError(e) && e.code === "UnexpectedEndOfInput") {
+      throw DcborParseError.emptyInput();
     }
-    return firstTokenResult;
+    throw e;
   }
-
-  const parseResult = parseItemToken(firstTokenResult.value, lexer);
-  if (!parseResult.ok) {
-    return parseResult;
-  }
-
-  // Determine consumed bytes
-  const nextToken = lexer.next();
-  const consumed = nextToken !== undefined ? lexer.span().start : src.length;
-
-  return ok([parseResult.value, consumed]);
 }
 
-// === Private Functions ===
-
-function parseItem(lexer: Lexer): ParseResult<Cbor> {
-  const tokenResult = expectToken(lexer);
-  if (!tokenResult.ok) {
-    return tokenResult;
-  }
-  return parseItemToken(tokenResult.value, lexer);
+function parseItem(lexer: Lexer, options: ParseOptions): Cbor {
+  return parseItemToken(expectToken(lexer), lexer, options);
 }
 
-function expectToken(lexer: Lexer): ParseResult<Token> {
+/** The next token; end of input and unrecognised text are errors. */
+function expectToken(lexer: Lexer): Token {
   const spanBefore = lexer.span();
-  const result = lexer.next();
-
-  if (result === undefined) {
-    return err(PE.unexpectedEndOfInput());
-  }
-
-  if (!result.ok) {
-    if (isDefaultError(result.error)) {
-      return err(PE.unrecognizedToken(spanBefore));
+  let token: Token | undefined;
+  try {
+    token = lexer.next();
+  } catch (e) {
+    // An unrecognised token is reported at the previous token's span.
+    if (DcborParseError.isDcborParseError(e) && e.code === "UnrecognizedToken") {
+      throw DcborParseError.unrecognizedToken(spanBefore);
     }
-    return result;
+    throw e;
   }
-
-  return result;
+  if (token === undefined) {
+    throw DcborParseError.unexpectedEndOfInput();
+  }
+  return token;
 }
 
-function parseItemToken(token: Token, lexer: Lexer): ParseResult<Cbor> {
+function parseItemToken(token: Token, lexer: Lexer, options: ParseOptions): Cbor {
   switch (token.type) {
     case "Bool":
-      return ok(cbor(token.value));
-
+      return cbor(token.value);
     case "Null":
-      return ok(cbor(null));
-
+      return cbor(null);
     case "ByteStringHex":
-      return ok(cbor(token.value));
-
     case "ByteStringBase64":
-      return ok(cbor(token.value));
-
+      return cbor(token.value);
     case "DateLiteral":
-      return ok(cbor(token.value));
-
+      return cbor(token.value);
     case "Number":
-      return ok(cbor(token.value));
-
+      return cbor(token.value);
     case "NaN":
-      return ok(cbor(Number.NaN));
-
+      return cbor(Number.NaN);
     case "Infinity":
-      return ok(cbor(Number.POSITIVE_INFINITY));
-
+      return cbor(Number.POSITIVE_INFINITY);
     case "NegInfinity":
-      return ok(cbor(Number.NEGATIVE_INFINITY));
-
+      return cbor(Number.NEGATIVE_INFINITY);
     case "String":
       return parseString(token.value, lexer.span());
-
     case "UR":
-      return parseUr(token.value, lexer.span());
-
+      return parseUr(token.value, lexer.span(), options);
     case "TagValue":
-      return parseNumberTag(token.value, lexer);
-
+      return parseNumberTag(token.value, lexer, options);
     case "TagName":
-      return parseNameTag(token.value, lexer);
-
+      return parseNameTag(token.value, lexer, options);
     case "KnownValueNumber":
-      return ok(new KnownValue(token.value).toCbor());
-
+      return new KnownValue(token.value).toCbor();
     case "KnownValueName": {
-      // Empty string means Unit (value 0)
       if (token.value === "") {
-        return ok(new KnownValue(0).toCbor());
+        return new KnownValue(0).toCbor();
       }
-
-      const knownValue = knownValueForName(token.value);
+      const knownValue = knownValueForName(token.value, options);
       if (knownValue !== undefined) {
-        return ok(knownValue.toCbor());
+        return knownValue.toCbor();
       }
       const tokenSpan = lexer.span();
-      return err(
-        PE.unknownKnownValueName(token.value, span(tokenSpan.start + 1, tokenSpan.end - 1)),
+      throw DcborParseError.unknownKnownValueName(
+        token.value,
+        span(tokenSpan.start + 1, tokenSpan.end - 1),
       );
     }
-
     case "Unit":
-      return ok(new KnownValue(0).toCbor());
-
+      return new KnownValue(0).toCbor();
     case "BracketOpen":
-      return parseArray(lexer);
-
+      return parseArray(lexer, options);
     case "BraceOpen":
-      return parseMap(lexer);
-
-    // Syntactic tokens that cannot start an item
+      return parseMap(lexer, options);
     case "BraceClose":
     case "BracketClose":
     case "ParenthesisOpen":
     case "ParenthesisClose":
     case "Colon":
     case "Comma":
-      return err(PE.unexpectedToken(token, lexer.span()));
+      throw DcborParseError.unexpectedToken(token, lexer.span());
   }
 }
 
-function parseString(s: string, tokenSpan: Span): ParseResult<Cbor> {
+function parseString(s: string, tokenSpan: Span): Cbor {
   if (s.startsWith('"') && s.endsWith('"')) {
-    // Remove quotes and return the inner string
-    const inner = s.slice(1, -1);
-    return ok(cbor(inner));
+    return cbor(s.slice(1, -1));
   }
-  return err(PE.unrecognizedToken(tokenSpan));
+  throw DcborParseError.unrecognizedToken(tokenSpan);
 }
 
-function tagForName(name: string): number | bigint | undefined {
-  return getGlobalTagsStore().tagForName(name)?.value;
+function tagForName(name: string, options: ParseOptions): number | bigint | undefined {
+  return (options.tags ?? getGlobalTagsStore()).tagForName(name)?.value;
 }
 
-function knownValueForName(name: string): KnownValue | undefined {
-  return getGlobalKnownValuesStore().byName(name);
+function knownValueForName(name: string, options: ParseOptions): KnownValue | undefined {
+  return (options.knownValues ?? getGlobalKnownValuesStore()).byName(name);
 }
 
-function parseUr(ur: UR, tokenSpan: Span): ParseResult<Cbor> {
+function parseUr(ur: UR, tokenSpan: Span, options: ParseOptions): Cbor {
   const urType = ur.type.name;
-  const tag = tagForName(urType);
-
+  const tag = tagForName(urType, options);
   if (tag !== undefined) {
-    return ok(taggedValue(tag, ur.cbor));
+    return taggedValue(tag, ur.cbor);
   }
-
-  return err(
-    PE.unknownUrType(urType, span(tokenSpan.start + 3, tokenSpan.start + 3 + urType.length)),
+  throw DcborParseError.unknownUrType(
+    urType,
+    span(tokenSpan.start + 3, tokenSpan.start + 3 + urType.length),
   );
 }
 
-function parseNumberTag(tagValue: number | bigint, lexer: Lexer): ParseResult<Cbor> {
-  const itemResult = parseItem(lexer);
-  if (!itemResult.ok) {
-    return itemResult;
+function parseNumberTag(tagValue: number | bigint, lexer: Lexer, options: ParseOptions): Cbor {
+  const item = parseItem(lexer, options);
+  const close = expectCloseParenthesis(lexer);
+  if (close.type === "ParenthesisClose") {
+    return taggedValue(tagValue, item);
   }
-
-  const closeResult = expectToken(lexer);
-  if (!closeResult.ok) {
-    if (closeResult.error.type === "UnexpectedEndOfInput") {
-      return err(PE.unmatchedParentheses(lexer.span()));
-    }
-    return closeResult;
-  }
-
-  if (closeResult.value.type === "ParenthesisClose") {
-    // Pass the tag value through as-is: when it's a `bigint` (i.e. a
-    // u64 outside the safe-integer range), dCBOR's `cbor({ tag, value })`
-    // builder serialises it as a `bigint` tag — matching Rust which
-    // accepts the full `0..=2^64-1` range natively.
-    return ok(taggedValue(tagValue, itemResult.value));
-  }
-
-  return err(PE.unmatchedParentheses(lexer.span()));
+  throw DcborParseError.unmatchedParentheses(lexer.span());
 }
 
-function parseNameTag(name: string, lexer: Lexer): ParseResult<Cbor> {
+function expectCloseParenthesis(lexer: Lexer): Token {
+  try {
+    return expectToken(lexer);
+  } catch (e) {
+    if (DcborParseError.isDcborParseError(e) && e.code === "UnexpectedEndOfInput") {
+      throw DcborParseError.unmatchedParentheses(lexer.span());
+    }
+    throw e;
+  }
+}
+
+function parseNameTag(name: string, lexer: Lexer, options: ParseOptions): Cbor {
   const tagSpan = span(lexer.span().start, lexer.span().end - 1);
-
-  const itemResult = parseItem(lexer);
-  if (!itemResult.ok) {
-    return itemResult;
-  }
-
-  const closeResult = expectToken(lexer);
-  if (!closeResult.ok) {
-    return closeResult;
-  }
-
-  if (closeResult.value.type === "ParenthesisClose") {
-    const tag = tagForName(name);
+  const item = parseItem(lexer, options);
+  const close = expectToken(lexer);
+  if (close.type === "ParenthesisClose") {
+    const tag = tagForName(name, options);
     if (tag !== undefined) {
-      return ok(taggedValue(tag, itemResult.value));
+      return taggedValue(tag, item);
     }
-    return err(PE.unknownTagName(name, tagSpan));
+    throw DcborParseError.unknownTagName(name, tagSpan);
   }
-
-  return err(PE.unmatchedParentheses(lexer.span()));
+  throw DcborParseError.unmatchedParentheses(lexer.span());
 }
 
-function parseArray(lexer: Lexer): ParseResult<Cbor> {
+function parseArray(lexer: Lexer, options: ParseOptions): Cbor {
   const items: Cbor[] = [];
   let awaitsComma = false;
   let awaitsItem = false;
-
-  while (true) {
-    const tokenResult = expectToken(lexer);
-    if (!tokenResult.ok) {
-      return tokenResult;
-    }
-
-    const token = tokenResult.value;
-
-    // Handle closing bracket
+  for (;;) {
+    const token = expectToken(lexer);
     if (token.type === "BracketClose" && !awaitsItem) {
-      return ok(cbor(items));
+      return cbor(items);
     }
-
-    // Handle comma
     if (token.type === "Comma" && awaitsComma) {
       awaitsItem = true;
       awaitsComma = false;
       continue;
     }
-
-    // Expect an item when not awaiting comma
     if (awaitsComma) {
-      return err(PE.expectedComma(lexer.span()));
+      throw DcborParseError.expectedComma(lexer.span());
     }
-
-    // Parse the item
-    const itemResult = parseItemToken(token, lexer);
-    if (!itemResult.ok) {
-      return itemResult;
-    }
-
-    items.push(itemResult.value);
+    items.push(parseItemToken(token, lexer, options));
     awaitsItem = false;
     awaitsComma = true;
   }
 }
 
-function parseMap(lexer: Lexer): ParseResult<Cbor> {
+function parseMap(lexer: Lexer, options: ParseOptions): Cbor {
   const map = new CborMap();
   let awaitsComma = false;
   let awaitsKey = false;
-
-  while (true) {
-    const tokenResult = expectToken(lexer);
-    if (!tokenResult.ok) {
-      if (tokenResult.error.type === "UnexpectedEndOfInput") {
-        return err(PE.unmatchedBraces(lexer.span()));
+  for (;;) {
+    let token: Token;
+    try {
+      token = expectToken(lexer);
+    } catch (e) {
+      if (DcborParseError.isDcborParseError(e) && e.code === "UnexpectedEndOfInput") {
+        throw DcborParseError.unmatchedBraces(lexer.span());
       }
-      return tokenResult;
+      throw e;
     }
-
-    const token = tokenResult.value;
-
-    // Handle closing brace
     if (token.type === "BraceClose" && !awaitsKey) {
-      return ok(cbor(map));
+      return cbor(map);
     }
-
-    // Handle comma
     if (token.type === "Comma" && awaitsComma) {
       awaitsKey = true;
       awaitsComma = false;
       continue;
     }
-
-    // Expect a key when not awaiting comma
     if (awaitsComma) {
-      return err(PE.expectedComma(lexer.span()));
+      throw DcborParseError.expectedComma(lexer.span());
     }
-
-    // Parse the key
-    const keyResult = parseItemToken(token, lexer);
-    if (!keyResult.ok) {
-      return keyResult;
-    }
-
-    const key = keyResult.value;
+    const key = parseItemToken(token, lexer, options);
     const keySpan = lexer.span();
-
-    // Check for duplicate key
     if (map.has(key)) {
-      return err(PE.duplicateMapKey(keySpan));
+      throw DcborParseError.duplicateMapKey(keySpan);
     }
-
-    // Expect colon.
-    //
-    // Mirrors Rust `parse.rs:382-395`:
-    // ```
-    //   if let Ok(Token::Colon) = expect_token(lexer) { … }
-    //   else { return Err(Error::ExpectedColon(lexer.span())); }
-    // ```
-    // Rust's pattern collapses *every* non-Colon outcome — including
-    // `UnexpectedEndOfInput`, `UnrecognizedToken`, and any other error
-    // — into `ExpectedColon`. Earlier revisions of this port forwarded
-    // the inner error verbatim, so `{1` reported `UnexpectedEndOfInput`
-    // instead of `ExpectedColon`.
-    const colonResult = expectToken(lexer);
-    if (!colonResult.ok || colonResult.value.type !== "Colon") {
-      return err(PE.expectedColon(lexer.span()));
+    let colon: Token | undefined;
+    try {
+      colon = expectToken(lexer);
+    } catch {
+      colon = undefined;
     }
-
-    // Parse the value.
-    //
-    // Rust `parse.rs:383-389` uses the inner `UnexpectedToken`'s **own**
-    // span when it converts to `ExpectedMapKey`. Earlier revisions of
-    // this port called `lexer.span()` here, which can drift if the
-    // lexer has stepped past the offending `}`. We now use the
-    // captured span from `valueResult.error` to preserve Rust's exact
-    // span semantics.
-    const valueResult = parseItem(lexer);
-    if (!valueResult.ok) {
-      if (valueResult.error.type === "UnexpectedToken") {
-        const unexpected = valueResult.error;
-        if (unexpected.token.type === "BraceClose") {
-          return err(PE.expectedMapKey(unexpected.span));
-        }
+    if (colon?.type !== "Colon") {
+      throw DcborParseError.expectedColon(lexer.span());
+    }
+    let value: Cbor;
+    try {
+      value = parseItem(lexer, options);
+    } catch (e) {
+      if (
+        DcborParseError.isDcborParseError(e) &&
+        e.code === "UnexpectedToken" &&
+        e.details.token?.type === "BraceClose" &&
+        e.details.span !== undefined
+      ) {
+        throw DcborParseError.expectedMapKey(e.details.span);
       }
-      return valueResult;
+      throw e;
     }
-
-    map.set(key, valueResult.value);
+    map.set(key, value);
     awaitsKey = false;
     awaitsComma = true;
   }

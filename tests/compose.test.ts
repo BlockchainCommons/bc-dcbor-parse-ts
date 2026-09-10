@@ -5,22 +5,22 @@
 import { diagnostic } from "@blockchaincommons/dcbor/diagnostic";
 import { describe, it, expect } from "vitest";
 import {} from "@blockchaincommons/dcbor";
-import { parseDcborItem } from "../src/parse";
-import { composeDcborArray, composeDcborMap } from "../src/compose";
+import { tryParseDcbor } from "../src/parse";
+import { tryComposeDcborArray, tryComposeDcborMap } from "../src/compose";
 
 function toDiagnosticFlat(cbor: Parameters<typeof diagnostic>[0]): string {
   return diagnostic(cbor, { flat: true });
 }
 
 function roundtripArray(array: readonly string[], expectedDiag: string): void {
-  const result = composeDcborArray(array);
+  const result = tryComposeDcborArray(array);
   expect(result.ok).toBe(true);
   if (result.ok) {
     const diag = toDiagnosticFlat(result.value);
     expect(diag).toBe(expectedDiag);
 
     // Parse it back and verify
-    const parseResult = parseDcborItem(diag);
+    const parseResult = tryParseDcbor(diag);
     expect(parseResult.ok).toBe(true);
     if (parseResult.ok) {
       expect(toDiagnosticFlat(parseResult.value)).toBe(toDiagnosticFlat(result.value));
@@ -29,14 +29,14 @@ function roundtripArray(array: readonly string[], expectedDiag: string): void {
 }
 
 function roundtripMap(array: readonly string[], expectedDiag: string): void {
-  const result = composeDcborMap(array);
+  const result = tryComposeDcborMap(array);
   expect(result.ok).toBe(true);
   if (result.ok) {
     const diag = toDiagnosticFlat(result.value);
     expect(diag).toBe(expectedDiag);
 
     // Parse it back and verify
-    const parseResult = parseDcborItem(diag);
+    const parseResult = tryParseDcbor(diag);
     expect(parseResult.ok).toBe(true);
     if (parseResult.ok) {
       expect(toDiagnosticFlat(parseResult.value)).toBe(toDiagnosticFlat(result.value));
@@ -67,12 +67,12 @@ describe("compose", () => {
     });
 
     it("should error on empty item", () => {
-      const result = composeDcborArray(["1", "2", "", "4"]);
+      const result = tryComposeDcborArray(["1", "2", "", "4"]);
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("ParseError");
-        if (result.error.type === "ParseError") {
-          expect(result.error.error.type).toBe("EmptyInput");
+        expect(result.error.code).toBe("ParseError");
+        if (result.error.code === "ParseError") {
+          expect(result.error.cause?.code).toBe("EmptyInput");
         }
       }
     });
@@ -107,28 +107,28 @@ describe("compose", () => {
     });
 
     it("should error on duplicate keys", () => {
-      const result = composeDcborMap(["1", "2", "1", "3"]);
+      const result = tryComposeDcborMap(["1", "2", "1", "3"]);
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("DuplicateMapKey");
+        expect(result.error.code).toBe("DuplicateMapKey");
       }
     });
 
     it("should error on odd number of items", () => {
-      const result = composeDcborMap(["1", "2", "3"]);
+      const result = tryComposeDcborMap(["1", "2", "3"]);
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("OddMapLength");
+        expect(result.error.code).toBe("OddMapLength");
       }
     });
 
     it("should error on empty item", () => {
-      const result = composeDcborMap(["1", "2", "", "4"]);
+      const result = tryComposeDcborMap(["1", "2", "", "4"]);
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("ParseError");
-        if (result.error.type === "ParseError") {
-          expect(result.error.error.type).toBe("EmptyInput");
+        expect(result.error.code).toBe("ParseError");
+        if (result.error.code === "ParseError") {
+          expect(result.error.cause?.code).toBe("EmptyInput");
         }
       }
     });

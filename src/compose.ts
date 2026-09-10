@@ -1,167 +1,70 @@
 /**
- * Copyright © 2023-2026 Blockchain Commons, LLC
- * Copyright © 2025-2026 Parity Technologies
- *
- *
- * @blockchaincommons/dcbor-parse - Compose module
- *
- * This is a 1:1 TypeScript port of bc-dcbor-parse-rust compose.rs
- *
- * @module dcbor-parse/compose
+ * Composing arrays and maps from already-textual items.
  */
-
 import { type Cbor, cbor, CborMap } from "@blockchaincommons/dcbor";
-import { type ParseError, errorMessage } from "./error";
-import { parseDcborItem } from "./parse";
+import { DcborParseError, DcborComposeError, type DcborResult } from "./error";
+import { parseDcbor, type ParseOptions } from "./parse";
+
+function parseItem(text: string, options: ParseOptions): Cbor {
+  try {
+    return parseDcbor(text, options);
+  } catch (e) {
+    if (DcborParseError.isDcborParseError(e)) throw DcborComposeError.parseError(e);
+    throw e;
+  }
+}
 
 /**
- * Compose error types.
+ * An array whose elements are the parsed `items`.
  *
- * Corresponds to the Rust `Error` enum in compose.rs
+ * @throws {DcborComposeError} `ParseError` with the item's error as `cause`
  */
-export type ComposeError =
-  | { readonly type: "OddMapLength" }
-  | { readonly type: "DuplicateMapKey" }
-  | { readonly type: "ParseError"; readonly error: ParseError };
+export function composeDcborArray(items: readonly string[], options: ParseOptions = {}): Cbor {
+  return cbor(items.map((item) => parseItem(item, options)));
+}
 
-// ComposeError constructors (lowercase to differentiate from the type)
-export const composeError = {
-  oddMapLength(): ComposeError {
-    return { type: "OddMapLength" };
-  },
+/**
+ * A map from alternating key and value `items`.
+ *
+ * @throws {DcborComposeError} `OddMapLength`, `DuplicateMapKey`, or `ParseError`
+ */
+export function composeDcborMap(items: readonly string[], options: ParseOptions = {}): Cbor {
+  if (items.length % 2 !== 0) {
+    throw DcborComposeError.oddMapLength();
+  }
+  const map = new CborMap();
+  for (let i = 0; i < items.length; i += 2) {
+    const key = parseItem(items[i], options);
+    const value = parseItem(items[i + 1], options);
+    if (map.has(key)) {
+      throw DcborComposeError.duplicateMapKey();
+    }
+    map.set(key, value);
+  }
+  return cbor(map);
+}
 
-  duplicateMapKey(): ComposeError {
-    return { type: "DuplicateMapKey" };
-  },
-
-  parseError(error: ParseError): ComposeError {
-    return { type: "ParseError", error };
-  },
+const asResult = (fn: () => Cbor): DcborResult<Cbor, DcborComposeError> => {
+  try {
+    return { ok: true, value: fn() };
+  } catch (e) {
+    if (DcborComposeError.isDcborComposeError(e)) return { ok: false, error: e };
+    throw e;
+  }
 };
 
-/**
- * Gets the error message for a compose error.
- *
- * Mirrors Rust `Error::Display` (`bc-dcbor-parse-rust/src/compose.rs`):
- * the `ParseError` arm uses `#[error("Invalid CBOR item: {0}")]`, which
- * formats the inner error via its `Display` impl — *not* the variant
- * name. So `Error::ParseError(Error::EmptyInput)` formats as
- * `"Invalid CBOR item: Empty input"`, not
- * `"Invalid CBOR item: EmptyInput"`. We delegate to {@link errorMessage}
- * to get the same `Display`-style text.
- */
-export function composeErrorMessage(error: ComposeError): string {
-  switch (error.type) {
-    case "OddMapLength":
-      return "Invalid odd map length";
-    case "DuplicateMapKey":
-      return "Duplicate map key";
-    case "ParseError":
-      return `Invalid CBOR item: ${errorMessage(error.error)}`;
-  }
+/** `composeDcborArray` as a `Result` instead of a throw. */
+export function tryComposeDcborArray(
+  items: readonly string[],
+  options: ParseOptions = {},
+): DcborResult<Cbor, DcborComposeError> {
+  return asResult(() => composeDcborArray(items, options));
 }
 
-/**
- * Result type for compose operations.
- *
- * Corresponds to Rust `Result<T, Error>`
- */
-export type ComposeResult<T> =
-  { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: ComposeError };
-
-/**
- * Creates a successful compose result.
- */
-export function composeOk<T>(value: T): ComposeResult<T> {
-  return { ok: true, value };
-}
-
-/**
- * Creates an error compose result.
- */
-export function composeErr<T>(error: ComposeError): ComposeResult<T> {
-  return { ok: false, error };
-}
-
-/**
- * Composes a dCBOR array from a slice of string slices, and returns a CBOR
- * object representing the array.
- *
- * Each string slice is parsed as a dCBOR item.
- *
- * @param array - Array of strings, each representing a dCBOR item
- * @returns A CBOR array containing all parsed items
- *
- * @example
- * ```typescript
- * const result = composeDcborArray(["1", "2", "3"]);
- * if (result.ok) {
- *   console.log(result.value.toDiagnostic()); // "[1, 2, 3]"
- * }
- * ```
- */
-export function composeDcborArray(array: readonly string[]): ComposeResult<Cbor> {
-  const result: Cbor[] = [];
-
-  for (const item of array) {
-    const parseResult = parseDcborItem(item);
-    if (!parseResult.ok) {
-      return composeErr(composeError.parseError(parseResult.error));
-    }
-    result.push(parseResult.value);
-  }
-
-  return composeOk(cbor(result));
-}
-
-/**
- * Composes a dCBOR map from a slice of string slices, and returns a CBOR
- * object representing the map.
- *
- * The length of the slice must be even, as each key must have a corresponding
- * value.
- *
- * Each string slice is parsed as a dCBOR item.
- *
- * @param array - Array of strings representing key-value pairs in alternating order
- * @returns A CBOR map containing all parsed key-value pairs
- *
- * @example
- * ```typescript
- * const result = composeDcborMap(["1", "2", "3", "4"]);
- * if (result.ok) {
- *   console.log(result.value.toDiagnostic()); // "{1: 2, 3: 4}"
- * }
- * ```
- */
-export function composeDcborMap(array: readonly string[]): ComposeResult<Cbor> {
-  if (array.length % 2 !== 0) {
-    return composeErr(composeError.oddMapLength());
-  }
-
-  const map = new CborMap();
-
-  for (let i = 0; i < array.length; i += 2) {
-    const keyStr = array[i];
-    const valueStr = array[i + 1];
-
-    const keyResult = parseDcborItem(keyStr);
-    if (!keyResult.ok) {
-      return composeErr(composeError.parseError(keyResult.error));
-    }
-
-    const valueResult = parseDcborItem(valueStr);
-    if (!valueResult.ok) {
-      return composeErr(composeError.parseError(valueResult.error));
-    }
-
-    // Check for duplicate key
-    if (map.has(keyResult.value)) {
-      return composeErr(composeError.duplicateMapKey());
-    }
-
-    map.set(keyResult.value, valueResult.value);
-  }
-
-  return composeOk(cbor(map));
+/** `composeDcborMap` as a `Result` instead of a throw. */
+export function tryComposeDcborMap(
+  items: readonly string[],
+  options: ParseOptions = {},
+): DcborResult<Cbor, DcborComposeError> {
+  return asResult(() => composeDcborMap(items, options));
 }

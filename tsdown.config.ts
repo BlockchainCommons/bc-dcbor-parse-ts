@@ -1,7 +1,7 @@
 import { defineConfig } from "tsdown";
 
 export default defineConfig({
-  entry: ["src/index.ts"],
+  entry: { index: "src/index.ts", lexer: "src/lexer.ts" },
   format: ["cjs", "esm"],
   dts: true,
   inputOptions: {
@@ -20,7 +20,4 @@ export default defineConfig({
   minify: false,
   outDir: "dist",
   target: "es2022",
-  deps: {
-    neverBundle: ["@blockchaincommons/dcbor-compat", "@blockchaincommons/known-values", "@blockchaincommons/uniform-resources"],
-  },
 });

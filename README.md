@@ -27,19 +27,31 @@ bun add @blockchaincommons/dcbor-parse
 ## Usage Instructions
 
 ```typescript
-import {
-  parseDcborItem,
-  parseDcborItemPartial,
-  composeDcborArray,
-  composeDcborMap,
-  token,
-  Lexer,
-  span,
-  defaultSpan,
-  parseError,
-  ok,
-} from "@blockchaincommons/dcbor-parse";
+import { parseDcbor, tryParseDcbor, parseDcborPrefix, DcborParseError } from "@blockchaincommons/dcbor-parse";
+import { registerTags } from "@blockchaincommons/tags";
+import { getGlobalTagsStore } from "@blockchaincommons/dcbor";
+
+registerTags(getGlobalTagsStore()); // so `date(…)`, `envelope(…)`, `ur:…` resolve by name
+
+const value = parseDcbor(`[1, "two", h'0304', 'isA', date(2023-12-25), {"k": 40024(1)}]`);
+value.toData(); // the dCBOR bytes
+
+try {
+  parseDcbor("[1, 2");
+} catch (e) {
+  if (DcborParseError.isDcborParseError(e)) {
+    e.code; // "UnexpectedEndOfInput"
+    e.fullMessage("[1, 2"); // line 1: Unexpected end of input, with a caret
+  }
+}
+
+const r = tryParseDcbor("nope"); // { ok: false, error: DcborParseError } — never throws
+const { value: first, length } = parseDcborPrefix("42 ]"); // the item and how much source it took
 ```
+
+Names resolve through the global tags and known-values stores unless you
+pass `{ tags, knownValues }` as the second argument. The tokenizer is on the
+`/lexer` subpath for languages that embed the notation.
 
 Runnable examples live in the [`examples/`](https://github.com/BlockchainCommons/bc-dcbor-parse-ts/tree/master/examples) directory.
 
