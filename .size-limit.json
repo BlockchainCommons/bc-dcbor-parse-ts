@@ -1,0 +1,22 @@
+[
+  {
+    "name": "ESM entry (import *), minified + gzipped",
+    "path": "dist/index.mjs",
+    "ignore": [
+      "@blockchaincommons/dcbor",
+      "@blockchaincommons/known-values",
+      "@blockchaincommons/uniform-resources"
+    ],
+    "limit": "6 kB"
+  },
+  {
+    "name": "lexer subpath, minified + gzipped",
+    "path": "dist/lexer.mjs",
+    "ignore": [
+      "@blockchaincommons/dcbor",
+      "@blockchaincommons/known-values",
+      "@blockchaincommons/uniform-resources"
+    ],
+    "limit": "4 kB"
+  }
+]

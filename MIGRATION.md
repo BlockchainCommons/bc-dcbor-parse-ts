@@ -1,0 +1,173 @@
+# Migrating from `@bcts/dcbor-parse` to `@blockchaincommons/dcbor-parse`
+
+The language is unchanged for almost every input: every string that parsed
+before parses to the same bytes, and every rejection keeps its variant and
+span (proven by `tests/differential.test.ts` against the frozen build of the
+earlier surface). The exceptions are listed under *Behaviour changes*; all of
+them are fixes towards the Rust reference or a new nesting limit. What
+changed is how results and errors are delivered.
+
+## Parsing
+
+| Before | After |
+|---|---|
+| `parseDcborItem(src): ParseResult<Cbor>` | `parseDcbor(src, options?): Cbor` (throws) or `tryParseDcbor(src, options?)` |
+| `parseDcborItemPartial(src): ParseResult<[Cbor, number]>` | `parseDcborPrefix(src, options?): { value, length }` (throws) or `tryParseDcborPrefix` |
+| `composeDcborArray(items): ComposeResult<Cbor>` | `composeDcborArray(items, options?): Cbor` (throws) or `tryComposeDcborArray` |
+| `composeDcborMap(items)` | `composeDcborMap(items, options?)` / `tryComposeDcborMap` |
+
+`options` is `{ tags?, knownValues?, maxDepth? }`: `tags` is a
+`ReadonlyTagsStore`, `knownValues` anything with `byName(name)` (a
+`KnownValuesStore` qualifies), `maxDepth` a positive integer (1 000).
+Omitted fields use the global stores and the default depth.
+
+The `try…` forms return the same `{ ok: true, value } | { ok: false, error }`
+shape the old functions did, so most call sites need only the rename and the
+error field changes below:
+
+```diff
+- const r = parseDcborItem(text);
+- if (!r.ok) console.error(fullErrorMessage(r.error, text));
++ const r = tryParseDcbor(text);
++ if (!r.ok) console.error(r.error.fullMessage(text));
+```
+
+## Errors
+
+`ParseError` (a union of `{ type, … }` objects) is the `DcborParseError`
+class; `ComposeError` is `DcborComposeError`.
+
+| Before | After |
+|---|---|
+| `error.type` | `error.code` (the same PascalCase names, as `DcborParseErrorCode`) |
+| `error.span`, `error.name`, `error.value`, `error.urType`, `error.dateString` | `error.details.span` (also `error.span`), `error.details.name`, `.value`, `.urType`, `.dateString` — typed by `error.code` |
+| `error.token` (the decoded `Token`) | `error.details.kind` (the token's type name) and `error.details.text` (its source text) |
+| `error.message` on an `InvalidUr` | `error.details.cause` |
+| `errorMessage(error)` | `error.message` |
+| `fullErrorMessage(error, source)` | `error.fullMessage(source)` |
+| `errorSpan(error)` | `error.span` |
+| `composeError.type === "ParseError"` and `composeError.error` | `composeError.code === "ParseError"` and `composeError.cause` |
+| `composeErrorMessage(e)` | `e.message` |
+| `ok`, `err`, `isOk`, `isErr`, `unwrap`, `unwrapErr`, `isDefaultError`, `defaultParseError`, `defaultSpan`, `parseError.*`, `composeError.*` | gone |
+| `new DcborParseError(code, message, details)` | gone; the static factories build every instance |
+
+`error.details` is frozen and discriminated by `code`; `error.is(code)` is a
+shorthand. `isDcborParseError` recognises an error from any copy of the
+package (ESM and CommonJS builds included).
+
+A `src` that is not a string, `options` that is not an object (or whose
+`tags`, `knownValues` or `maxDepth` has the wrong type), and compose `items`
+that are not an array of strings throw a `TypeError` from every form,
+including `tryParseDcbor`; before, these surfaced as engine errors from
+inside the parser or were silently accepted.
+
+Spans stay UTF-16 code-unit offsets; `spanToByteOffsets(source, span)` gives
+the byte offsets the Rust reference reports.
+
+## Lexer
+
+`Lexer` and `Token` live on `@blockchaincommons/dcbor-parse/lexer` (beta).
+`Lexer` is iterable; `next()` returns `Token | undefined` and throws
+`DcborParseError` instead of returning a result object. Every token carries
+its `span`; `lexer.span` and `lexer.slice` are getters for the last token. A
+`String` token holds the text between the quotes. The `token` constructor
+namespace is gone: tokens are plain readonly literals.
+
+## Behaviour changes
+
+Towards the reference:
+
+- A date literal keeps its exact fractional seconds
+  (`2023-12-25T10:30:45.123456Z` no longer rounds to milliseconds).
+- `…T10:30:60Z` (a leap second) is accepted as the following minute.
+- Years 0000–0099 are accepted and encode as themselves.
+- `truex`, `nullx`, `NaNx` etc. are one unrecognised token; before, the
+  keyword lexed and the rest was reported as extra data (so
+  `parseDcborItemPartial("truex")` succeeded).
+- `true(1)` and the other keywords followed by `(` are tag names, so they
+  are `UnknownTagName`; before, the keyword lexed and `(1)` was extra data.
+- A base64 literal with non-zero trailing bits (`b64'QR=='`) is
+  `InvalidBase64String`; before it decoded.
+- `'value'` and `'Self'` no longer resolve: the bundled registry follows the
+  reference's store.
+
+This package's own:
+
+- Nesting deeper than `maxDepth` (1 000) is `NestingTooDeep`; before, a few
+  thousand levels overflowed the call stack with a `RangeError`.
+
+## Dependencies
+
+`@blockchaincommons/dcbor-compat` is replaced by `@blockchaincommons/dcbor`;
+the values returned are canonical `Cbor` (`value.toData()`,
+`diagnostic(value)` from `@blockchaincommons/dcbor/diagnostic`).
+
+## Appendix: migrating from `@bcts/dcbor-parse`
+
+`@blockchaincommons/dcbor-parse` is the canonical home of this library. It was extracted from the
+[`paritytech/bcts`](https://github.com/paritytech/bcts) monorepo, where it was
+published as `@bcts/dcbor-parse`, into its own Blockchain Commons repository at
+[`BlockchainCommons/bc-dcbor-parse-ts`](https://github.com/BlockchainCommons/bc-dcbor-parse-ts).
+
+`1.0.0-beta.1` is the first release under the new scope; the sections above
+list every renamed and removed name.
+
+### TL;DR checklist
+
+- [ ] Replace the `@bcts/dcbor-parse` dependency with `@blockchaincommons/dcbor-parse`.
+- [ ] Rewrite import specifiers: `@bcts/dcbor-parse` becomes `@blockchaincommons/dcbor-parse`.
+- [ ] Raise your Node floor to **22.12**.
+- [ ] Ensure TypeScript **>= 5.7** to consume the published types.
+- [ ] If you relied on the `browser` field or a global-script build, switch to the ESM or CJS entry point.
+
+### 1. Package name and imports
+
+```diff
+- import { /* ... */ } from "@bcts/dcbor-parse";
++ import { /* ... */ } from "@blockchaincommons/dcbor-parse";
+```
+
+```diff
+  "dependencies": {
+-   "@bcts/dcbor-parse": "^1.0.0-beta.6"
++   "@blockchaincommons/dcbor-parse": "^1.0.0-beta.1"
+  }
+```
+
+### 2. Version numbering restarts
+
+`@bcts/dcbor-parse` versions moved in lockstep with every other package in the
+monorepo, which is why it reached `1.0.0-beta.6`. Each extracted package now
+versions independently and starts again at `1.0.0-beta.1`. A lower version
+number here does **not** mean older code.
+
+### 3. Node and TypeScript floors moved up
+
+| | `@bcts/dcbor-parse` | `@blockchaincommons/dcbor-parse` |
+|---|---|---|
+| Node | `>= 18` | `>= 22.12` |
+| TypeScript (consumers) | 6.x | `>= 5.7` |
+
+### 4. The IIFE / global-script build is gone
+
+`@bcts/dcbor-parse` shipped an additional IIFE bundle exposed through the `browser`
+field. That build is dropped: IIFE entry points cannot share chunks, which forks
+module-level singletons across entry points. Use the ESM entry (`import`) or the
+CJS entry (`require`); both are declared in `exports` and validated in CI by
+`publint` and `@arethetypeswrong/cli`.
+
+### 5. Peer packages renamed too
+
+Every sibling library moved from the `@bcts` scope to `@blockchaincommons`. If
+you depend on more than one, rename them together so a single copy of each
+shared type is resolved:
+
+| Old | New |
+|---|---|
+| `@bcts/dcbor` | `@blockchaincommons/dcbor` |
+| `@bcts/<name>` | `@blockchaincommons/<name>` |
+
+### 6. What did not change
+
+- The language: outside the behaviour changes above, every string parses to the same bytes.
+- Parity with the Rust reference implementation. See [`RUST_DIVERGENCES.md`](./RUST_DIVERGENCES.md).

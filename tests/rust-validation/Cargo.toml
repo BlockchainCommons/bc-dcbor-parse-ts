@@ -1,0 +1,15 @@
+[package]
+name = "dcbor-parse-validation"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# The tracked reference release (see .github/versions.yml). To validate a
+# local checkout instead, add a `[patch.crates-io]` entry pointing at it.
+dcbor-parse = "=0.11.1"
+dcbor = "0.25"
+bc-tags = "=0.12.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+hex = "0.4"
