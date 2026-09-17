@@ -4,6 +4,7 @@
  *
  * @module error
  */
+import type { Token } from "./token";
 
 /** A non-throwing outcome: the value, or the error. */
 export type DcborResult<T, E> =
@@ -41,33 +42,6 @@ export function spanToByteOffsets(source: string, span: Span): Span {
   return Object.freeze({ start: bytes(span.start), end: bytes(span.end) });
 }
 
-/** The kind of a token, as `UnexpectedToken` reports it. */
-export type TokenKind =
-  | "Bool"
-  | "BraceOpen"
-  | "BraceClose"
-  | "BracketOpen"
-  | "BracketClose"
-  | "ParenthesisOpen"
-  | "ParenthesisClose"
-  | "Colon"
-  | "Comma"
-  | "Null"
-  | "NaN"
-  | "Infinity"
-  | "NegInfinity"
-  | "ByteStringHex"
-  | "ByteStringBase64"
-  | "DateLiteral"
-  | "Number"
-  | "String"
-  | "TagValue"
-  | "TagName"
-  | "KnownValueNumber"
-  | "KnownValueName"
-  | "Unit"
-  | "UR";
-
 /** Why a source string was rejected. */
 export const DcborParseErrorCode: {
   /** The source holds nothing but whitespace and comments. */
@@ -76,7 +50,7 @@ export const DcborParseErrorCode: {
   readonly UnexpectedEndOfInput: "UnexpectedEndOfInput";
   /** Text follows the first item. */
   readonly ExtraData: "ExtraData";
-  /** A token that cannot start or continue an item here. */
+  /** A token that cannot start or continue an item here; inside an array also `Unit` and a literal that did not decode. */
   readonly UnexpectedToken: "UnexpectedToken";
   /** Text no token matches. */
   readonly UnrecognizedToken: "UnrecognizedToken";
@@ -94,7 +68,7 @@ export const DcborParseErrorCode: {
   readonly InvalidTagValue: "InvalidTagValue";
   /** A tag name the tags store does not know. */
   readonly UnknownTagName: "UnknownTagName";
-  /** An `h'…'` literal with an odd number of digits, or unterminated. */
+  /** An `h'…'` literal with an odd number of digits. */
   readonly InvalidHexString: "InvalidHexString";
   /** A `b64'…'` literal that is not canonical base64. */
   readonly InvalidBase64String: "InvalidBase64String";
@@ -165,15 +139,13 @@ export type DcborParseErrorDetails =
       readonly code: "UnexpectedToken";
       /** The token. */
       readonly span: Span;
-      /** The kind of the token found. */
-      readonly kind: TokenKind;
-      /** The token's source text. */
-      readonly text: string;
+      /** The token found, with its payload (a literal's decoded value or its own error). */
+      readonly token: Token;
     }
   | {
       /** The discriminant. */
       readonly code: "UnrecognizedToken";
-      /** The token before the unrecognised text, or the text itself at the start of the source. */
+      /** The token before the unrecognised text (an empty span at the start of the source). */
       readonly span: Span;
     }
   | {
@@ -310,7 +282,7 @@ export type DcborParseErrorTyped<C extends DcborParseErrorCode = DcborParseError
     : never;
 
 /**
- * Thrown by `parseDcbor` and `parseDcborPrefix` (and carried by the `try…`
+ * Thrown by `parseDcborItem` and `parseDcborItemPartial` (and carried by the `try…`
  * forms) for text that does not parse. `code` says why; `details` carries
  * the span and the code-specific fields; `fullMessage(source)` renders the
  * message with the source line and a caret. Instances come from the static
@@ -319,7 +291,7 @@ export type DcborParseErrorTyped<C extends DcborParseErrorCode = DcborParseError
  * @example
  * ```ts
  * try {
- *   parseDcbor(text);
+ *   parseDcborItem(text);
  * } catch (e) {
  *   if (DcborParseError.isDcborParseError(e) && e.code === "UnknownTagName") {
  *     e.details.name; // the tag name that did not resolve
@@ -384,17 +356,12 @@ export class DcborParseError extends Error {
   static extraData(span: Span): DcborParseErrorTyped<"ExtraData"> {
     return DcborParseError.make("Extra data at end of input", { code: "ExtraData", span });
   }
-  /** A token that cannot start or continue an item here. */
-  static unexpectedToken(
-    kind: TokenKind,
-    text: string,
-    span: Span,
-  ): DcborParseErrorTyped<"UnexpectedToken"> {
+  /** A token that cannot start or continue an item here; `text` is its source text. */
+  static unexpectedToken(token: Token, text: string): DcborParseErrorTyped<"UnexpectedToken"> {
     return DcborParseError.make(`Unexpected token \`${text}\``, {
       code: "UnexpectedToken",
-      span,
-      kind,
-      text,
+      span: token.span,
+      token,
     });
   }
   /** Text no token matches. */
@@ -437,7 +404,7 @@ export class DcborParseError extends Error {
       name,
     });
   }
-  /** An `h'…'` literal with an odd number of digits or an unterminated one. */
+  /** An `h'…'` literal with an odd number of digits. */
   static invalidHexString(span: Span): DcborParseErrorTyped<"InvalidHexString"> {
     return DcborParseError.make("Invalid hex string", { code: "InvalidHexString", span });
   }

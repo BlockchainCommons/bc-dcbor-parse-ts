@@ -7,7 +7,7 @@
 import { getGlobalTagsStore } from "@blockchaincommons/dcbor";
 import { diagnostic } from "@blockchaincommons/dcbor/diagnostic";
 import { registerTags } from "@blockchaincommons/tags";
-import { parseDcbor, parseDcborPrefix, DcborParseError } from "../src";
+import { parseDcborItem, parseDcborItemPartial, DcborParseError } from "../src";
 
 // Tag names (`date(…)`, `envelope(…)`, `ur:…`) resolve through the tags store.
 registerTags(getGlobalTagsStore());
@@ -20,16 +20,17 @@ const source = `{
   "photo": b64'SGVsbG8=',
   "role": 'isA',
   "when": date(2023-12-25T10:30:45Z),
-  "flags": [true, false, null, Unit]
+  "flags": [true, false, null],
+  "unit": Unit
 }`;
 
-const value = parseDcbor(source);
+const value = parseDcborItem(source);
 console.log(diagnostic(value, { annotate: true }));
 console.log(`${value.toData().length} bytes`);
 
 const bad = '{"a": 1, "a": 2}';
 try {
-  parseDcbor(bad);
+  parseDcborItem(bad);
 } catch (e) {
   if (DcborParseError.isDcborParseError(e)) {
     console.log(`${e.code}:`);
@@ -37,5 +38,5 @@ try {
   }
 }
 
-const { value: first, length } = parseDcborPrefix("42 ] the rest");
+const { value: first, length } = parseDcborItemPartial("42 ] the rest");
 console.log(`${diagnostic(first)} took ${length} characters`);

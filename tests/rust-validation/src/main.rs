@@ -8,18 +8,13 @@
 //! the harness converts them to UTF-16 code units so they compare with the
 //! port's. Classes (see RUST_DIVERGENCES.md):
 //!   match    identical outcome
-//!   S1       both reject with the same variant at a different span
-//!   S2       both reject; the reference's lexer fails the whole literal
-//!            (UnrecognizedToken) where the port names the literal error
-//!   S3       a prefix parse consumed a different length before an
-//!            unterminated `/…` comment (the port stops at the `/`)
-//!   S4       both reject a non-ASCII digit; different variant
-//!   D2       `Unit` inside a container: the reference rejects it
+//!   S1       both reject with the same variant; the reference's span starts
+//!            inside a quoted literal, a `ur:` prefix or an `h'` prefix, where
+//!            its generated lexer stops reading at a point its grammar does
+//!            not specify (the port spans what it scanned)
 //!   N1       the port's nesting limit (`NestingTooDeep`); the reference has none
 //!   U1       the reference panics; the port rejects
 //!   js-only  a `domain` recipe the reference's types cannot express
-//!   pending  a divergence a later wave closes (P-B2 base64 trailing bits,
-//!            P-B5 keyword before `(`); expected to reach zero
 //!   MISMATCH anything else; exit 1
 use dcbor_parse::{
     compose_dcbor_array, compose_dcbor_map, parse_dcbor_item, parse_dcbor_item_partial,
@@ -156,8 +151,19 @@ fn variant(s: &str) -> String {
         .to_string()
 }
 
-fn has_non_ascii_digit(src: &str) -> bool {
-    src.chars().any(|c| c.is_numeric() && !c.is_ascii_digit())
+/// The start of the reference's span, as a UTF-16 offset.
+fn span_start(outcome: &str) -> Option<usize> {
+    let at = outcome.rfind('@')?;
+    outcome[at + 1..].split('-').next()?.parse().ok()
+}
+
+/// Whether the text at UTF-16 offset `start` is a quoted literal, a `ur:`
+/// prefix or an `h'` prefix: the shapes inside which the reference's lexer
+/// stops at an extent its grammar does not specify.
+fn automaton_residue(src: &str, start: usize) -> bool {
+    let units: Vec<u16> = src.encode_utf16().skip(start).take(4).collect();
+    let text: String = char::decode_utf16(units).map(|c| c.unwrap_or('\u{fffd}')).collect();
+    text.starts_with('\'') || text.starts_with('"') || text.starts_with("ur") || text.starts_with("h'")
 }
 
 /// The class of an expected divergence, or `None` for a mismatch.
@@ -168,38 +174,8 @@ fn classify(recipe: &serde_json::Value, got: &str, want: &str) -> Option<&'stati
     if wv == "NestingTooDeep" {
         return Some("N1");
     }
-    if both_reject && gv == wv {
+    if both_reject && gv == wv && span_start(got).is_some_and(|s| automaton_residue(src, s)) {
         return Some("S1");
-    }
-    if both_reject
-        && gv == "UnrecognizedToken"
-        && matches!(wv.as_str(), "InvalidHexString" | "InvalidBase64String")
-    {
-        return Some("S2");
-    }
-    if recipe["k"] == "partial"
-        && !got.starts_with("throw:")
-        && !want.starts_with("throw:")
-        && got.split('@').next() == want.split('@').next()
-        && src.contains('/')
-    {
-        return Some("S3");
-    }
-    if both_reject && has_non_ascii_digit(src) {
-        return Some("S4");
-    }
-    if gv == "UnexpectedToken(Unit)" {
-        return Some("D2");
-    }
-    if gv == "InvalidBase64String" && !want.starts_with("throw:") && src.starts_with("b64'") {
-        return Some("pending P-B2");
-    }
-    // A keyword directly followed by `(`: the reference lexes a tag name, the port the keyword.
-    if ["true(", "false(", "null(", "NaN(", "Infinity(", "Unit("]
-        .iter()
-        .any(|k| src.starts_with(k))
-    {
-        return Some("pending P-B5");
     }
     None
 }

@@ -6,7 +6,9 @@
  * `typescript6` npm alias devDependency) via node_modules symlinks; `tsc`
  * and tsdown keep resolving the root TypeScript 7.
  *
- * Runs from the root `postinstall` hook. Remove this script together with
+ * Runs from the root `prepare` hook, which a package manager runs for the
+ * project being installed and not for a dependency fetched from the registry
+ * (this script is not shipped). Remove it together with
  * the `typescript6` devDependency once upstream supports TS7.
  */
 import { existsSync, mkdirSync, readdirSync, rmSync, symlinkSync } from "node:fs";

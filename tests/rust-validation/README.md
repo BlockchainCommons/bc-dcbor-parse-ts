@@ -14,11 +14,11 @@ Outcomes are the dCBOR hex, `hex@length` for a prefix parse, or
 harness converts them to UTF-16 code units so they compare with the port's.
 `bc_tags::register_tags()` registers the same tag names the port's test
 adapters register. The run classifies every row (the classes are described
-in `RUST_DIVERGENCES.md`): **match**, **S1–S4** and **D2** (recorded
-divergences), **N1** (the port's nesting limit), **U1** (the reference
-panics, the port rejects), **js-only** (inputs the reference's types cannot
-express), **pending** (a divergence a later change closes), and
-**MISMATCH**, which exits 1.
+in `RUST_DIVERGENCES.md`): **match**, **S1** (the same rejection with a span
+that ends where the reference's generated lexer stopped inside a quoted
+literal or a `ur:` prefix), **N1** (the port's nesting limit), **U1** (the
+reference panics, the port rejects), **js-only** (inputs the reference's
+types cannot express), and **MISMATCH**, which exits 1.
 
 To validate a local checkout of the reference instead of the release, add
 to `Cargo.toml`:

@@ -15,7 +15,7 @@ import {
 import { registerTags } from "@blockchaincommons/tags";
 import { IS_A, UNIT } from "@blockchaincommons/known-values";
 import { UR } from "@blockchaincommons/uniform-resources";
-import { tryParseDcbor, tryParseDcborPrefix } from "../src/parse";
+import { tryParseDcborItem, tryParseDcborItemPartial } from "../src/parse";
 import { type DcborParseErrorCode } from "../src/error";
 import { diagnostic } from "@blockchaincommons/dcbor/diagnostic";
 
@@ -30,7 +30,7 @@ beforeAll(() => {
  */
 function roundtrip(value: Cbor): void {
   const src = diagnostic(value);
-  const result = tryParseDcbor(src);
+  const result = tryParseDcborItem(src);
   if (!result.ok) {
     throw new Error(`Parse error: ${result.error.fullMessage(src)}`);
   }
@@ -92,7 +92,7 @@ describe("parse", () => {
 
       const hex = hexDiagnostic(bytes);
       expect(hex).toBe("h'0102030405060708090a'");
-      const result = tryParseDcbor(hex);
+      const result = tryParseDcborItem(hex);
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(diagnostic(result.value)).toBe(diagnostic(cborBytes));
@@ -105,7 +105,7 @@ describe("parse", () => {
 
       const base64 = base64Diagnostic(bytes);
       expect(base64).toBe("b64'AQIDBAUGBwgJCg=='");
-      const result = tryParseDcbor(base64);
+      const result = tryParseDcborItem(base64);
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(diagnostic(result.value)).toBe(diagnostic(cborBytes));
@@ -118,7 +118,7 @@ describe("parse", () => {
       const cborNaN = cbor(NaN);
       const src = diagnostic(cborNaN);
       expect(src).toBe("NaN");
-      const result = tryParseDcbor(src);
+      const result = tryParseDcborItem(src);
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(Number.isNaN(expectNumber(result.value))).toBe(true);
@@ -187,7 +187,7 @@ describe("parse", () => {
       const cborValue = v.toCbor();
       const src = diagnostic(cborValue);
       expect(src).toBe("40000(1)");
-      const result = tryParseDcbor(src);
+      const result = tryParseDcborItem(src);
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(diagnostic(result.value)).toBe(diagnostic(cborValue));
@@ -199,14 +199,14 @@ describe("parse", () => {
       const cborValue = v.toCbor();
 
       // Test '1'
-      const result2 = tryParseDcbor("'1'");
+      const result2 = tryParseDcborItem("'1'");
       expect(result2.ok).toBe(true);
       if (result2.ok) {
         expect(diagnostic(result2.value)).toBe(diagnostic(cborValue));
       }
 
       // Test 'isA'
-      const result3 = tryParseDcbor("'isA'");
+      const result3 = tryParseDcborItem("'isA'");
       expect(result3.ok).toBe(true);
       if (result3.ok) {
         expect(diagnostic(result3.value)).toBe(diagnostic(cborValue));
@@ -222,7 +222,7 @@ describe("parse", () => {
       // Test various unit representations
       const tests = ["40000(0)", "'0'", "''", "Unit"];
       for (const test of tests) {
-        const result = tryParseDcbor(test);
+        const result = tryParseDcborItem(test);
         expect(result.ok).toBe(true);
         if (result.ok) {
           expect(diagnostic(result.value)).toBe(diagnostic(cborValue));
@@ -233,7 +233,7 @@ describe("parse", () => {
 
   describe("errors", () => {
     function checkError(source: string, expectedType: DcborParseErrorCode): void {
-      const result = tryParseDcbor(source);
+      const result = tryParseDcborItem(source);
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error.code).toBe(expectedType);
@@ -255,6 +255,18 @@ describe("parse", () => {
 
     it("should error on unexpected token", () => {
       checkError("(", "UnexpectedToken");
+    });
+
+    it("carries the token in an unexpected-token error", () => {
+      const result = tryParseDcborItem("[1,)");
+      expect(result.ok).toBe(false);
+      if (!result.ok && result.error.details.code === "UnexpectedToken") {
+        expect(result.error.details.token).toEqual({
+          type: "ParenthesisClose",
+          span: { start: 3, end: 4 },
+        });
+        expect(result.error.message).toBe("Unexpected token `)`");
+      }
     });
 
     it("should error on unrecognized token", () => {
@@ -310,19 +322,147 @@ describe("parse", () => {
     });
   });
 
+  describe("inside arrays", () => {
+    const outcome = (src: string): string => {
+      const result = tryParseDcborItem(src);
+      if (result.ok) return "ok";
+      const { error } = result;
+      const span = error.span === undefined ? "" : `@${error.span.start}-${error.span.end}`;
+      if (error.details.code !== "UnexpectedToken") return `${error.code}${span}`;
+      const { token } = error.details;
+      const payload =
+        "value" in token && typeof token.value === "object" && "ok" in token.value
+          ? `:${token.value.ok ? "ok" : token.value.error.code}`
+          : "";
+      return `UnexpectedToken(${token.type}${payload})${span}`;
+    };
+
+    it("rejects Unit as an element and accepts it everywhere else", () => {
+      expect(outcome("[Unit]")).toBe("UnexpectedToken(Unit)@1-5");
+      expect(outcome("[1, Unit, 2]")).toBe("UnexpectedToken(Unit)@4-8");
+      expect(outcome("[Unit 1]")).toBe("UnexpectedToken(Unit)@1-5");
+      expect(outcome("[1 Unit]")).toBe("ExpectedComma@3-7");
+      expect(outcome("[[Unit]]")).toBe("UnexpectedToken(Unit)@2-6");
+      expect(outcome("{Unit: 1}")).toBe("ok");
+      expect(outcome("{1: Unit}")).toBe("ok");
+      expect(outcome("1(Unit)")).toBe("ok");
+      expect(outcome("Unit")).toBe("ok");
+    });
+
+    it("reports a literal that did not decode as the token, not as its own error", () => {
+      expect(outcome("[h'abc']")).toBe("UnexpectedToken(ByteStringHex:InvalidHexString)@1-7");
+      expect(outcome("[1, 2, h'abc']")).toBe(
+        "UnexpectedToken(ByteStringHex:InvalidHexString)@7-13",
+      );
+      expect(outcome("[b64'QR==']")).toBe(
+        "UnexpectedToken(ByteStringBase64:InvalidBase64String)@1-10",
+      );
+      expect(outcome("[2023-13-45]")).toBe("UnexpectedToken(DateLiteral:InvalidDateString)@1-11");
+      expect(outcome("[99999999999999999999999(1)]")).toBe(
+        "UnexpectedToken(TagValue:InvalidTagValue)@1-25",
+      );
+      expect(outcome("['99999999999999999999999']")).toBe(
+        "UnexpectedToken(KnownValueNumber:InvalidKnownValue)@1-26",
+      );
+      expect(outcome("[ur:foo/aaaaaaaa]")).toBe("UnexpectedToken(UR:InvalidUr)@1-16");
+      expect(outcome("h'abc'")).toBe("InvalidHexString@0-6");
+      expect(outcome("{h'abc': 1}")).toBe("InvalidHexString@1-7");
+      expect(outcome("{1: h'abc'}")).toBe("InvalidHexString@4-10");
+      expect(outcome("1(h'abc')")).toBe("InvalidHexString@2-8");
+    });
+
+    it("reports ExpectedComma and UnmatchedParentheses before naming a literal's error", () => {
+      expect(outcome("[1 h'abc']")).toBe("ExpectedComma@3-9");
+      expect(outcome("{1: 2 h'abc'}")).toBe("ExpectedComma@6-12");
+      expect(outcome("1(1 h'abc')")).toBe("UnmatchedParentheses@4-10");
+      expect(outcome("date(1 h'abc')")).toBe("UnmatchedParentheses@7-13");
+      expect(outcome("{1 h'abc'}")).toBe("ExpectedColon@3-9");
+    });
+
+    it("spans an unknown known-value name with its quotes in an array and without elsewhere", () => {
+      expect(outcome("['zzz']")).toBe("UnknownKnownValueName@1-6");
+      expect(outcome("[1, 'zzz']")).toBe("UnknownKnownValueName@4-9");
+      expect(outcome("'zzz'")).toBe("UnknownKnownValueName@1-4");
+      expect(outcome("{'zzz': 1}")).toBe("UnknownKnownValueName@2-5");
+    });
+  });
+
+  describe("error spans", () => {
+    const outcome = (src: string): string => {
+      const result = tryParseDcborItem(src);
+      if (result.ok) return "ok";
+      const { error } = result;
+      return error.span === undefined
+        ? error.code
+        : `${error.code}@${error.span.start}-${error.span.end}`;
+    };
+    const consumed = (src: string): string => {
+      const result = tryParseDcborItemPartial(src);
+      return result.ok ? String(result.value.length) : result.error.code;
+    };
+
+    it("sit at the end of the source when the source ended", () => {
+      expect(outcome("42(1")).toBe("UnmatchedParentheses@4-4");
+      expect(outcome("{1")).toBe("ExpectedColon@2-2");
+      expect(outcome('{"k"')).toBe("ExpectedColon@4-4");
+      expect(outcome("{1: 2")).toBe("UnmatchedBraces@5-5");
+      expect(outcome("{1: 2 ")).toBe("UnmatchedBraces@6-6");
+      expect(outcome("{1: 2 /c/")).toBe("UnmatchedBraces@9-9");
+      expect(outcome("{")).toBe("UnmatchedBraces@1-1");
+    });
+
+    it("cover an unrecognised identifier run", () => {
+      expect(outcome("1_000")).toBe("ExtraData@1-5");
+      expect(outcome("0x10")).toBe("ExtraData@1-4");
+      expect(outcome("-Infinityzz")).toBe("ExtraData@9-11");
+      expect(outcome("1 truex")).toBe("ExtraData@2-7");
+      expect(outcome("{1 truex}")).toBe("ExpectedColon@3-8");
+      expect(outcome("[1 truex]")).toBe("UnrecognizedToken@1-2");
+    });
+
+    it("cover a whitespace run that ends in an unterminated comment, from its start", () => {
+      expect(outcome("1 /x")).toBe("ExtraData@1-4");
+      expect(outcome("{1 /x}")).toBe("ExpectedColon@2-6");
+      expect(consumed("1 /unterminated")).toBe("1");
+      expect(consumed("1 \t/")).toBe("1");
+      expect(consumed("1 /a/ /b")).toBe("1");
+      expect(consumed("1 /a/")).toBe("5");
+      expect(outcome("/x 1")).toBe("UnrecognizedToken@0-0");
+    });
+
+    it("treat a hex or base64 literal that fails its pattern as unrecognised text", () => {
+      expect(outcome("h'zz'")).toBe("UnrecognizedToken@0-0");
+      expect(outcome("h'")).toBe("UnrecognizedToken@0-0");
+      expect(outcome("[1, h'zz']")).toBe("UnrecognizedToken@2-3");
+      expect(outcome("1 h'zz'")).toBe("ExtraData@2-3");
+      expect(outcome("b64'A'")).toBe("UnrecognizedToken@0-0");
+      expect(outcome("b64''")).toBe("UnrecognizedToken@0-0");
+      expect(outcome("[b64'']")).toBe("UnrecognizedToken@0-1");
+      expect(outcome("h'abc'")).toBe("InvalidHexString@0-6");
+      expect(outcome("b64'QR=='")).toBe("InvalidBase64String@0-9");
+    });
+
+    it("reject a date literal with non-ASCII digits as a date", () => {
+      expect(outcome("٢٠٢٣-01-01")).toBe("InvalidDateString@0-10");
+      expect(outcome("2023-01-0١")).toBe("InvalidDateString@0-10");
+      expect(outcome("[2023-01-0١]")).toBe("UnexpectedToken@1-11");
+      expect(outcome("1١")).toBe("ExtraData@1-2");
+    });
+  });
+
   describe("whitespace and comments", () => {
     it("should handle multiline whitespace", () => {
       const src = `{
   "Hello":
       "World"
 }`;
-      const result = tryParseDcbor(src);
+      const result = tryParseDcborItem(src);
       expect(result.ok).toBe(true);
     });
 
     it("should handle inline comments", () => {
       const src = "/this is a comment/ [1, /ignore me/ 2, 3]";
-      const result = tryParseDcbor(src);
+      const result = tryParseDcborItem(src);
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(diagnostic(result.value)).toBe("[1, 2, 3]");
@@ -331,7 +471,7 @@ describe("parse", () => {
 
     it("should handle end-of-line comments", () => {
       const src = "[1, 2, 3] # this should be ignored";
-      const result = tryParseDcbor(src);
+      const result = tryParseDcborItem(src);
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(diagnostic(result.value)).toBe("[1, 2, 3]");
@@ -341,7 +481,7 @@ describe("parse", () => {
 
   describe("partial parsing", () => {
     it("should parse partial input", () => {
-      const result = tryParseDcborPrefix("true )");
+      const result = tryParseDcborItemPartial("true )");
       expect(result.ok).toBe(true);
       if (result.ok) {
         const { value: cborValue, length: used } = result.value;
@@ -352,7 +492,7 @@ describe("parse", () => {
 
     it("should handle trailing whitespace in partial", () => {
       const src = "false  # comment\n";
-      const result = tryParseDcborPrefix(src);
+      const result = tryParseDcborItemPartial(src);
       expect(result.ok).toBe(true);
       if (result.ok) {
         const { value: cborValue, length: used } = result.value;
@@ -364,7 +504,7 @@ describe("parse", () => {
 
   describe("date literals", () => {
     it("should parse simple dates", () => {
-      const result = tryParseDcbor("2023-02-08");
+      const result = tryParseDcborItem("2023-02-08");
       expect(result.ok).toBe(true);
       if (result.ok) {
         // Should be a tagged date value
@@ -373,12 +513,12 @@ describe("parse", () => {
     });
 
     it("should parse date-time", () => {
-      const result = tryParseDcbor("2023-02-08T15:30:45Z");
+      const result = tryParseDcborItem("2023-02-08T15:30:45Z");
       expect(result.ok).toBe(true);
     });
 
     it("should parse array of dates", () => {
-      const result = tryParseDcbor("[1965-05-15, 2000-07-25, 2004-10-30]");
+      const result = tryParseDcborItem("[1965-05-15, 2000-07-25, 2004-10-30]");
       expect(result.ok).toBe(true);
       if (result.ok) {
         // Dates should be tagged, not quoted strings
@@ -390,7 +530,7 @@ describe("parse", () => {
 
   describe("duplicate map keys", () => {
     it("should error on duplicate string keys", () => {
-      const result = tryParseDcbor('{"key1": 1, "key2": 2, "key1": 3}');
+      const result = tryParseDcborItem('{"key1": 1, "key2": 2, "key1": 3}');
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error.code).toBe("DuplicateMapKey");
@@ -398,7 +538,7 @@ describe("parse", () => {
     });
 
     it("should error on duplicate integer keys", () => {
-      const result = tryParseDcbor('{1: "value1", 2: "value2", 1: "value3"}');
+      const result = tryParseDcborItem('{1: "value1", 2: "value2", 1: "value3"}');
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error.code).toBe("DuplicateMapKey");
@@ -406,13 +546,13 @@ describe("parse", () => {
     });
 
     it("should allow non-duplicate keys", () => {
-      const result = tryParseDcbor('{"key1": 1, "key2": 2, "key3": 3}');
+      const result = tryParseDcborItem('{"key1": 1, "key2": 2, "key3": 3}');
       expect(result.ok).toBe(true);
     });
 
     it("should error on duplicate key with correct location", () => {
       const input = '{"key1": 1, "key2": 2, "key1": 3}';
-      const result = tryParseDcbor(input);
+      const result = tryParseDcborItem(input);
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error.code).toBe("DuplicateMapKey");
@@ -432,7 +572,7 @@ describe("parse", () => {
       const urString = ur.toString();
       expect(urString).toMatch(/^ur:date\//);
 
-      const result = tryParseDcbor(urString);
+      const result = tryParseDcborItem(urString);
       expect(result.ok).toBe(true);
       if (result.ok) {
         // The parsed result should match the tagged date CBOR
@@ -441,7 +581,7 @@ describe("parse", () => {
     });
 
     it("should error on unknown UR type", () => {
-      const result = tryParseDcbor("ur:foobar/cyisdadmlasgtapttl");
+      const result = tryParseDcborItem("ur:foobar/cyisdadmlasgtapttl");
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error.code).toBe("UnknownUrType");
@@ -450,7 +590,7 @@ describe("parse", () => {
 
     it("should error on invalid UR", () => {
       // Invalid checksum (last character changed)
-      const result = tryParseDcbor("ur:date/cyisdadmlasgtapttx");
+      const result = tryParseDcborItem("ur:date/cyisdadmlasgtapttx");
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error.code).toBe("InvalidUr");
@@ -464,7 +604,7 @@ describe("parse", () => {
       const dateCbor = date.toCbor();
       // Replace numeric tag with name: '1(' -> 'date('
       const dateDiag = diagnostic(dateCbor).replace("1(", "date(");
-      const result = tryParseDcbor(dateDiag);
+      const result = tryParseDcborItem(dateDiag);
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(diagnostic(result.value)).toBe(diagnostic(dateCbor));
@@ -493,7 +633,7 @@ describe("parse", () => {
     it("should handle whitespace variant 2", () => {
       const src = `{"Hello":
 "World"}`;
-      const result = tryParseDcbor(src);
+      const result = tryParseDcborItem(src);
       expect(result.ok).toBe(true);
       if (result.ok) {
         const map = new CborMap();
@@ -505,7 +645,7 @@ describe("parse", () => {
 
   describe("additional error cases", () => {
     it("should error on expected comma in map", () => {
-      const result = tryParseDcbor("{1: 2 3: 4}");
+      const result = tryParseDcborItem("{1: 2 3: 4}");
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error.code).toBe("ExpectedComma");
@@ -513,7 +653,7 @@ describe("parse", () => {
     });
 
     it("should error on invalid known value (very large number)", () => {
-      const result = tryParseDcbor("'20000000000000000000'");
+      const result = tryParseDcborItem("'20000000000000000000'");
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error.code).toBe("InvalidKnownValue");
@@ -523,17 +663,17 @@ describe("parse", () => {
 
   describe("date extended tests", () => {
     it("should parse date with timezone offset", () => {
-      const result = tryParseDcbor("2023-02-08T15:30:45+01:00");
+      const result = tryParseDcborItem("2023-02-08T15:30:45+01:00");
       expect(result.ok).toBe(true);
     });
 
     it("should parse date with negative timezone offset", () => {
-      const result = tryParseDcbor("2023-02-08T15:30:45-08:00");
+      const result = tryParseDcborItem("2023-02-08T15:30:45-08:00");
       expect(result.ok).toBe(true);
     });
 
     it("should parse date with milliseconds", () => {
-      const result = tryParseDcbor("2023-02-08T15:30:45.123Z");
+      const result = tryParseDcborItem("2023-02-08T15:30:45.123Z");
       expect(result.ok).toBe(true);
       if (result.ok) {
         const expected = CborDate.fromString("2023-02-08T15:30:45.123Z");
@@ -542,12 +682,12 @@ describe("parse", () => {
     });
 
     it("should parse date in map", () => {
-      const result = tryParseDcbor('{"start": 2023-01-01, "end": 2023-12-31}');
+      const result = tryParseDcborItem('{"start": 2023-01-01, "end": 2023-12-31}');
       expect(result.ok).toBe(true);
     });
 
     it("should parse nested structure with dates", () => {
-      const result = tryParseDcbor(
+      const result = tryParseDcborItem(
         '{"events": [2023-01-01T00:00:00Z, 2023-06-15T12:30:00Z], "metadata": {"created": 2023-02-08}}',
       );
       expect(result.ok).toBe(true);
@@ -556,7 +696,7 @@ describe("parse", () => {
 
   describe("date vs number precedence", () => {
     it("should parse pure number as number", () => {
-      const result = tryParseDcbor("2023");
+      const result = tryParseDcborItem("2023");
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(diagnostic(result.value)).toBe("2023");
@@ -564,7 +704,7 @@ describe("parse", () => {
     });
 
     it("should parse date format as date", () => {
-      const result = tryParseDcbor("2023-01-01");
+      const result = tryParseDcborItem("2023-01-01");
       expect(result.ok).toBe(true);
       if (result.ok) {
         const expected = CborDate.fromYmd(2023, 1, 1);
@@ -573,8 +713,8 @@ describe("parse", () => {
     });
 
     it("should produce different results for number and date", () => {
-      const numberResult = tryParseDcbor("2023");
-      const dateResult = tryParseDcbor("2023-01-01");
+      const numberResult = tryParseDcborItem("2023");
+      const dateResult = tryParseDcborItem("2023-01-01");
       expect(numberResult.ok).toBe(true);
       expect(dateResult.ok).toBe(true);
       if (numberResult.ok && dateResult.ok) {

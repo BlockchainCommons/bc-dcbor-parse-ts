@@ -5,8 +5,10 @@
 ```ts
 
 import { Cbor } from '@blockchaincommons/dcbor';
+import { CborDate } from '@blockchaincommons/dcbor';
 import { KnownValue } from '@blockchaincommons/known-values';
 import { ReadonlyTagsStore } from '@blockchaincommons/dcbor';
+import { UR } from '@blockchaincommons/uniform-resources';
 
 // @public
 export function composeDcborArray(items: readonly string[], options?: ParseOptions): Cbor;
@@ -79,7 +81,7 @@ export class DcborParseError extends Error {
     static nestingTooDeep(maxDepth: number, span: Span): DcborParseErrorTyped<"NestingTooDeep">;
     get span(): Span | undefined;
     static unexpectedEndOfInput(): DcborParseErrorTyped<"UnexpectedEndOfInput">;
-    static unexpectedToken(kind: TokenKind, text: string, span: Span): DcborParseErrorTyped<"UnexpectedToken">;
+    static unexpectedToken(token: Token, text: string): DcborParseErrorTyped<"UnexpectedToken">;
     static unknownKnownValueName(name: string, span: Span): DcborParseErrorTyped<"UnknownKnownValueName">;
     static unknownTagName(name: string, span: Span): DcborParseErrorTyped<"UnknownTagName">;
     static unknownUrType(urType: string, span: Span): DcborParseErrorTyped<"UnknownUrType">;
@@ -127,8 +129,7 @@ export type DcborParseErrorDetails = {
 } | {
     readonly code: "UnexpectedToken";
     readonly span: Span;
-    readonly kind: TokenKind;
-    readonly text: string;
+    readonly token: Token;
 } | {
     readonly code: "UnrecognizedToken";
     readonly span: Span;
@@ -214,10 +215,10 @@ export interface KnownValueResolver {
 }
 
 // @public
-export function parseDcbor(src: string, options?: ParseOptions): Cbor;
+export function parseDcborItem(src: string, options?: ParseOptions): Cbor;
 
 // @public
-export function parseDcborPrefix(src: string, options?: ParseOptions): ParsedPrefix;
+export function parseDcborItemPartial(src: string, options?: ParseOptions): ParsedPrefix;
 
 // @public
 export interface ParsedPrefix {
@@ -245,7 +246,71 @@ export function span(start: number, end: number): Span;
 export function spanToByteOffsets(source: string, span: Span): Span;
 
 // @public
-export type TokenKind = "Bool" | "BraceOpen" | "BraceClose" | "BracketOpen" | "BracketClose" | "ParenthesisOpen" | "ParenthesisClose" | "Colon" | "Comma" | "Null" | "NaN" | "Infinity" | "NegInfinity" | "ByteStringHex" | "ByteStringBase64" | "DateLiteral" | "Number" | "String" | "TagValue" | "TagName" | "KnownValueNumber" | "KnownValueName" | "Unit" | "UR";
+export type Token = {
+    readonly span: Span;
+} & ({
+    readonly type: "Bool";
+    readonly value: boolean;
+} | {
+    readonly type: "BraceOpen";
+} | {
+    readonly type: "BraceClose";
+} | {
+    readonly type: "BracketOpen";
+} | {
+    readonly type: "BracketClose";
+} | {
+    readonly type: "ParenthesisOpen";
+} | {
+    readonly type: "ParenthesisClose";
+} | {
+    readonly type: "Colon";
+} | {
+    readonly type: "Comma";
+} | {
+    readonly type: "Null";
+} | {
+    readonly type: "NaN";
+} | {
+    readonly type: "Infinity";
+} | {
+    readonly type: "NegInfinity";
+} | {
+    readonly type: "ByteStringHex";
+    readonly value: DcborResult<Uint8Array, DcborParseError>;
+} | {
+    readonly type: "ByteStringBase64";
+    readonly value: DcborResult<Uint8Array, DcborParseError>;
+} | {
+    readonly type: "DateLiteral";
+    readonly value: DcborResult<CborDate, DcborParseError>;
+} | {
+    readonly type: "Number";
+    readonly value: number;
+} | {
+    readonly type: "String";
+    readonly value: string;
+} | {
+    readonly type: "TagValue";
+    readonly value: DcborResult<number | bigint, DcborParseError>;
+} | {
+    readonly type: "TagName";
+    readonly value: string;
+} | {
+    readonly type: "KnownValueNumber";
+    readonly value: DcborResult<number | bigint, DcborParseError>;
+} | {
+    readonly type: "KnownValueName";
+    readonly value: string;
+} | {
+    readonly type: "Unit";
+} | {
+    readonly type: "UR";
+    readonly value: DcborResult<UR, DcborParseError>;
+});
+
+// @public
+export type TokenKind = Token["type"];
 
 // @public
 export function tryComposeDcborArray(items: readonly string[], options?: ParseOptions): DcborResult<Cbor, DcborComposeError>;
@@ -254,10 +319,10 @@ export function tryComposeDcborArray(items: readonly string[], options?: ParseOp
 export function tryComposeDcborMap(items: readonly string[], options?: ParseOptions): DcborResult<Cbor, DcborComposeError>;
 
 // @public
-export function tryParseDcbor(src: string, options?: ParseOptions): DcborResult<Cbor, DcborParseError>;
+export function tryParseDcborItem(src: string, options?: ParseOptions): DcborResult<Cbor, DcborParseError>;
 
 // @public
-export function tryParseDcborPrefix(src: string, options?: ParseOptions): DcborResult<ParsedPrefix, DcborParseError>;
+export function tryParseDcborItemPartial(src: string, options?: ParseOptions): DcborResult<ParsedPrefix, DcborParseError>;
 
 // (No @packageDocumentation comment for this package)
 

@@ -10,6 +10,7 @@ import {
   type ReadonlyTagsStore,
 } from "@blockchaincommons/dcbor";
 import { KnownValue, getGlobalKnownValuesStore } from "@blockchaincommons/known-values";
+import type { UR } from "@blockchaincommons/uniform-resources";
 import { type Span, span, DcborParseError, type DcborResult } from "./error";
 import { type Token, Lexer } from "./token";
 
@@ -33,7 +34,11 @@ export interface ParseOptions {
 export interface ParsedPrefix {
   /** The first item of the source. */
   readonly value: Cbor;
-  /** The number of UTF-16 code units consumed, trailing whitespace and comments included. */
+  /**
+   * The number of UTF-16 code units consumed, trailing whitespace and comments
+   * included. When an unterminated `/…` comment follows, the whitespace run it
+   * ends is not consumed and `length` is where that run began.
+   */
   readonly length: number;
 }
 
@@ -108,9 +113,9 @@ function hasMethod(value: unknown, name: string): boolean {
  * @throws {DcborParseError} for text that does not parse
  * @throws {TypeError} for a `src` that is not a string or an option of the wrong type
  */
-export function parseDcbor(src: string, options?: ParseOptions): Cbor {
-  requireSource("parseDcbor", src);
-  return parseWith(src, resolveOptions("parseDcbor", options));
+export function parseDcborItem(src: string, options?: ParseOptions): Cbor {
+  requireSource("parseDcborItem", src);
+  return parseWith(src, resolveOptions("parseDcborItem", options));
 }
 
 /** @internal Parses `src` as a whole item in an already resolved context. */
@@ -136,16 +141,16 @@ function hasMore(lexer: Lexer): boolean {
 }
 
 /**
- * `parseDcbor` as a `Result` instead of a throw. Every string is an outcome;
+ * `parseDcborItem` as a `Result` instead of a throw. Every string is an outcome;
  * a `src` that is not a string or an option of the wrong type still throws
  * `TypeError`.
  */
-export function tryParseDcbor(
+export function tryParseDcborItem(
   src: string,
   options?: ParseOptions,
 ): DcborResult<Cbor, DcborParseError> {
   try {
-    return { ok: true, value: parseDcbor(src, options) };
+    return { ok: true, value: parseDcborItem(src, options) };
   } catch (e) {
     if (DcborParseError.isDcborParseError(e)) return { ok: false, error: e };
     throw e;
@@ -159,9 +164,9 @@ export function tryParseDcbor(
  * @throws {DcborParseError} for text that does not parse
  * @throws {TypeError} for a `src` that is not a string or an option of the wrong type
  */
-export function parseDcborPrefix(src: string, options?: ParseOptions): ParsedPrefix {
-  requireSource("parseDcborPrefix", src);
-  const ctx = resolveOptions("parseDcborPrefix", options);
+export function parseDcborItemPartial(src: string, options?: ParseOptions): ParsedPrefix {
+  requireSource("parseDcborItemPartial", src);
+  const ctx = resolveOptions("parseDcborItemPartial", options);
   const lexer = new Lexer(src);
   const first = expectFirstToken(lexer);
   const value = parseItemToken(first, lexer, ctx);
@@ -169,13 +174,13 @@ export function parseDcborPrefix(src: string, options?: ParseOptions): ParsedPre
   return Object.freeze({ value, length });
 }
 
-/** `parseDcborPrefix` as a `Result` instead of a throw; the `TypeError` contract of `tryParseDcbor` applies. */
-export function tryParseDcborPrefix(
+/** `parseDcborItemPartial` as a `Result` instead of a throw; the `TypeError` contract of `tryParseDcborItem` applies. */
+export function tryParseDcborItemPartial(
   src: string,
   options?: ParseOptions,
 ): DcborResult<ParsedPrefix, DcborParseError> {
   try {
-    return { ok: true, value: parseDcborPrefix(src, options) };
+    return { ok: true, value: parseDcborItemPartial(src, options) };
   } catch (e) {
     if (DcborParseError.isDcborParseError(e)) return { ok: false, error: e };
     throw e;
@@ -224,6 +229,17 @@ function enter(ctx: Context, opening: Span): void {
   ctx.depth++;
 }
 
+/** A literal's decoded value; its error is thrown where the literal is not accepted. */
+function decoded<T>(value: DcborResult<T, DcborParseError>): T {
+  if (value.ok) return value.value;
+  throw value.error;
+}
+
+/**
+ * The item `token` starts: at the top level, as a map key or value and as a
+ * tag's content. A literal that did not decode is its own error here;
+ * `Unit` is the unit value. Arrays accept less (`parseArrayElement`).
+ */
 function parseItemToken(token: Token, lexer: Lexer, ctx: Context): Cbor {
   switch (token.type) {
     case "Bool":
@@ -232,9 +248,9 @@ function parseItemToken(token: Token, lexer: Lexer, ctx: Context): Cbor {
       return cbor(null);
     case "ByteStringHex":
     case "ByteStringBase64":
-      return cbor(token.value);
+      return cbor(decoded(token.value));
     case "DateLiteral":
-      return cbor(token.value);
+      return cbor(decoded(token.value));
     case "Number":
       return cbor(token.value);
     case "NaN":
@@ -244,38 +260,17 @@ function parseItemToken(token: Token, lexer: Lexer, ctx: Context): Cbor {
     case "NegInfinity":
       return cbor(Number.NEGATIVE_INFINITY);
     case "String":
-      return cbor(token.value);
-    case "UR": {
-      const urType = token.value.type.name;
-      const tag = ctx.tags.tagForName(urType)?.value;
-      if (tag !== undefined) {
-        return taggedValue(tag, token.value.cbor);
-      }
-      throw DcborParseError.unknownUrType(
-        urType,
-        span(token.span.start + 3, token.span.start + 3 + urType.length),
-      );
-    }
+      return cbor(token.value.slice(1, -1));
+    case "UR":
+      return parseUr(decoded(token.value), token.span, ctx);
     case "TagValue":
-      return parseNumberTag(token, lexer, ctx);
+      return parseNumberTag(decoded(token.value), token.span, lexer, ctx);
     case "TagName":
       return parseNameTag(token, lexer, ctx);
     case "KnownValueNumber":
-      return new KnownValue(token.value).toCbor();
-    case "KnownValueName": {
-      const knownValue = ctx.knownValues.byName(token.value);
-      if (knownValue !== undefined) {
-        return knownValue.toCbor();
-      }
-      if (token.value === "") {
-        // The empty name is the unit value even when the resolver does not index it.
-        return new KnownValue(0).toCbor();
-      }
-      throw DcborParseError.unknownKnownValueName(
-        token.value,
-        span(token.span.start + 1, token.span.end - 1),
-      );
-    }
+      return new KnownValue(decoded(token.value)).toCbor();
+    case "KnownValueName":
+      return parseKnownValueName(token.value, span(token.span.start + 1, token.span.end - 1), ctx);
     case "Unit":
       return new KnownValue(0).toCbor();
     case "BracketOpen":
@@ -288,17 +283,89 @@ function parseItemToken(token: Token, lexer: Lexer, ctx: Context): Cbor {
     case "ParenthesisClose":
     case "Colon":
     case "Comma":
-      throw DcborParseError.unexpectedToken(token.type, lexer.slice, token.span);
+      throw DcborParseError.unexpectedToken(token, lexer.slice);
   }
 }
 
-function parseNumberTag(token: Token & { type: "TagValue" }, lexer: Lexer, ctx: Context): Cbor {
-  enter(ctx, token.span);
+/**
+ * The element `token` starts inside an array, or `undefined` when `token`
+ * cannot be one there: `Unit`, a literal that did not decode and punctuation
+ * are `UnexpectedToken` in an array (or `ExpectedComma` where a comma is
+ * awaited), and an unknown known-value name spans its quotes.
+ */
+function parseArrayElement(token: Token, lexer: Lexer, ctx: Context): Cbor | undefined {
+  switch (token.type) {
+    case "ByteStringHex":
+    case "ByteStringBase64":
+    case "DateLiteral":
+      return token.value.ok ? cbor(token.value.value) : undefined;
+    case "UR":
+      return token.value.ok ? parseUr(token.value.value, token.span, ctx) : undefined;
+    case "TagValue":
+      return token.value.ok ? parseNumberTag(token.value.value, token.span, lexer, ctx) : undefined;
+    case "KnownValueNumber":
+      return token.value.ok ? new KnownValue(token.value.value).toCbor() : undefined;
+    case "KnownValueName":
+      return parseKnownValueName(token.value, token.span, ctx);
+    case "Bool":
+    case "Null":
+    case "Number":
+    case "NaN":
+    case "Infinity":
+    case "NegInfinity":
+    case "String":
+    case "TagName":
+    case "BracketOpen":
+    case "BraceOpen":
+      return parseItemToken(token, lexer, ctx);
+    case "Unit":
+    case "BraceClose":
+    case "BracketClose":
+    case "ParenthesisOpen":
+    case "ParenthesisClose":
+    case "Colon":
+    case "Comma":
+      return undefined;
+  }
+}
+
+function parseUr(ur: UR, tokenSpan: Span, ctx: Context): Cbor {
+  const urType = ur.type.name;
+  const tag = ctx.tags.tagForName(urType)?.value;
+  if (tag !== undefined) {
+    return taggedValue(tag, ur.cbor);
+  }
+  throw DcborParseError.unknownUrType(
+    urType,
+    span(tokenSpan.start + 3, tokenSpan.start + 3 + urType.length),
+  );
+}
+
+/** The known value named `name`; `errorSpan` is what `UnknownKnownValueName` reports. */
+function parseKnownValueName(name: string, errorSpan: Span, ctx: Context): Cbor {
+  const knownValue = ctx.knownValues.byName(name);
+  if (knownValue !== undefined) {
+    return knownValue.toCbor();
+  }
+  if (name === "") {
+    // The empty name is the unit value even when the resolver does not index it.
+    return new KnownValue(0).toCbor();
+  }
+  throw DcborParseError.unknownKnownValueName(name, errorSpan);
+}
+
+function parseNumberTag(
+  tagValue: number | bigint,
+  opening: Span,
+  lexer: Lexer,
+  ctx: Context,
+): Cbor {
+  enter(ctx, opening);
   const item = parseItem(lexer, ctx);
   const close = expectCloseParenthesis(lexer);
   ctx.depth--;
   if (close.type === "ParenthesisClose") {
-    return taggedValue(token.value, item);
+    return taggedValue(tagValue, item);
   }
   throw DcborParseError.unmatchedParentheses(close.span);
 }
@@ -337,19 +404,22 @@ function parseArray(opening: Token, lexer: Lexer, ctx: Context): Cbor {
   let awaitsItem = false;
   for (;;) {
     const token = expectToken(lexer);
-    if (token.type === "BracketClose" && !awaitsItem) {
-      ctx.depth--;
-      return cbor(items);
-    }
     if (token.type === "Comma" && awaitsComma) {
       awaitsItem = true;
       awaitsComma = false;
       continue;
     }
-    if (awaitsComma) {
-      throw DcborParseError.expectedComma(token.span);
+    if (token.type === "BracketClose" && !awaitsItem) {
+      ctx.depth--;
+      return cbor(items);
     }
-    items.push(parseItemToken(token, lexer, ctx));
+    const item = awaitsComma ? undefined : parseArrayElement(token, lexer, ctx);
+    if (item === undefined) {
+      throw awaitsComma
+        ? DcborParseError.expectedComma(token.span)
+        : DcborParseError.unexpectedToken(token, lexer.slice);
+    }
+    items.push(item);
     awaitsItem = false;
     awaitsComma = true;
   }
@@ -403,7 +473,7 @@ function parseMap(opening: Token, lexer: Lexer, ctx: Context): Cbor {
       if (
         DcborParseError.isDcborParseError(e) &&
         e.code === "UnexpectedToken" &&
-        e.details.kind === "BraceClose"
+        e.details.token.type === "BraceClose"
       ) {
         throw DcborParseError.expectedMapKey(e.details.span);
       }

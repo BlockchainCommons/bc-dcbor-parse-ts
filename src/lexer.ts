@@ -8,5 +8,4 @@
  * @beta
  * @module lexer
  */
-export { Lexer, type Token } from "./token";
-export type { TokenKind } from "./error";
+export { Lexer, type Token, type TokenKind } from "./token";

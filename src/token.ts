@@ -6,56 +6,167 @@
 
 import { CborDate, hexToBytes } from "@blockchaincommons/dcbor";
 import { UR } from "@blockchaincommons/uniform-resources";
-import { type Span, type TokenKind, span, DcborParseError } from "./error";
-
-type Spanned<T extends { readonly type: TokenKind }> = T & {
-  /** Where the token sits in the source, in UTF-16 code units. */
-  readonly span: Span;
-};
+import { type DcborResult, type Span, span, DcborParseError } from "./error";
 
 /**
  * A token of the notation, with its span.
  *
- * `TagValue` and `KnownValueNumber` accept the full unsigned 64-bit range:
- * a value that fits in `Number.MAX_SAFE_INTEGER` is a `number`, anything
- * larger a `bigint`, so no precision is lost. A `String` token holds the
- * text between the quotes; escape sequences are kept as written.
+ * The six literal kinds carry their decoded value or, when the text matched
+ * the literal's pattern but did not decode (an odd number of hex digits, a
+ * non-canonical base64 body, an impossible date, a tag or known-value number
+ * past 2⁶⁴ − 1, a UR the decoder rejects), the error the parser reports for
+ * it. `TagValue` and `KnownValueNumber` accept the full unsigned 64-bit
+ * range: a value that fits in `Number.MAX_SAFE_INTEGER` is a `number`,
+ * anything larger a `bigint`, so no precision is lost. A `String` token
+ * holds its source text, quotes included; escape sequences are kept as
+ * written.
  */
-export type Token =
-  | Spanned<{ readonly type: "Bool"; readonly value: boolean }>
-  | Spanned<{ readonly type: "BraceOpen" }>
-  | Spanned<{ readonly type: "BraceClose" }>
-  | Spanned<{ readonly type: "BracketOpen" }>
-  | Spanned<{ readonly type: "BracketClose" }>
-  | Spanned<{ readonly type: "ParenthesisOpen" }>
-  | Spanned<{ readonly type: "ParenthesisClose" }>
-  | Spanned<{ readonly type: "Colon" }>
-  | Spanned<{ readonly type: "Comma" }>
-  | Spanned<{ readonly type: "Null" }>
-  | Spanned<{ readonly type: "NaN" }>
-  | Spanned<{ readonly type: "Infinity" }>
-  | Spanned<{ readonly type: "NegInfinity" }>
-  | Spanned<{ readonly type: "ByteStringHex"; readonly value: Uint8Array }>
-  | Spanned<{ readonly type: "ByteStringBase64"; readonly value: Uint8Array }>
-  | Spanned<{ readonly type: "DateLiteral"; readonly value: CborDate }>
-  | Spanned<{ readonly type: "Number"; readonly value: number }>
-  | Spanned<{ readonly type: "String"; readonly value: string }>
-  | Spanned<{ readonly type: "TagValue"; readonly value: number | bigint }>
-  | Spanned<{ readonly type: "TagName"; readonly value: string }>
-  | Spanned<{ readonly type: "KnownValueNumber"; readonly value: number | bigint }>
-  | Spanned<{ readonly type: "KnownValueName"; readonly value: string }>
-  | Spanned<{ readonly type: "Unit" }>
-  | Spanned<{ readonly type: "UR"; readonly value: UR }>;
+export type Token = {
+  /** Where the token sits in the source, in UTF-16 code units. */
+  readonly span: Span;
+} & (
+  | {
+      /** The discriminant. */
+      readonly type: "Bool";
+      /** `true` or `false`. */
+      readonly value: boolean;
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "BraceOpen";
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "BraceClose";
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "BracketOpen";
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "BracketClose";
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "ParenthesisOpen";
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "ParenthesisClose";
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "Colon";
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "Comma";
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "Null";
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "NaN";
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "Infinity";
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "NegInfinity";
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "ByteStringHex";
+      /** The bytes, or `InvalidHexString` for an odd number of digits. */
+      readonly value: DcborResult<Uint8Array, DcborParseError>;
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "ByteStringBase64";
+      /** The bytes, or `InvalidBase64String` for a body that is not canonical base64. */
+      readonly value: DcborResult<Uint8Array, DcborParseError>;
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "DateLiteral";
+      /** The date, or `InvalidDateString` for text the date parser rejects. */
+      readonly value: DcborResult<CborDate, DcborParseError>;
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "Number";
+      /** The number, as `parseFloat` reads it. */
+      readonly value: number;
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "String";
+      /** The source text, quotes included; escapes as written. */
+      readonly value: string;
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "TagValue";
+      /** The tag number, or `InvalidTagValue` past 2⁶⁴ − 1. */
+      readonly value: DcborResult<number | bigint, DcborParseError>;
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "TagName";
+      /** The name before the `(`. */
+      readonly value: string;
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "KnownValueNumber";
+      /** The known-value number, or `InvalidKnownValue` past 2⁶⁴ − 1. */
+      readonly value: DcborResult<number | bigint, DcborParseError>;
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "KnownValueName";
+      /** The name between the quotes; empty for `''`. */
+      readonly value: string;
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "Unit";
+    }
+  | {
+      /** The discriminant. */
+      readonly type: "UR";
+      /** The decoded UR, or `InvalidUr` for one the decoder rejects. */
+      readonly value: DcborResult<UR, DcborParseError>;
+    }
+);
+
+/** The kind of a token: its `type` discriminant. */
+export type TokenKind = Token["type"];
+
+const ok = <T>(value: T): DcborResult<T, never> => Object.freeze({ ok: true, value });
+const err = (error: DcborParseError): DcborResult<never, DcborParseError> =>
+  Object.freeze({ ok: false, error });
 
 // Sticky regular expressions: matched at `lastIndex` without slicing the
 // source, so a long document lexes in linear time.
-const DATE_RE = /\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)?/y;
+// A date literal admits any decimal digit (`\p{Nd}`), so a non-ASCII digit
+// reaches the date parser and is rejected as a date; a number is ASCII only.
+const DATE_RE =
+  /\p{Nd}{4}-\p{Nd}{2}-\p{Nd}{2}(?:T\p{Nd}{2}:\p{Nd}{2}:\p{Nd}{2}(?:\.\p{Nd}+)?(?:Z|[+-]\p{Nd}{2}:\p{Nd}{2})?)?/uy;
 const NUMBER_RE = /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
 const TAG_NAME_RE = /[a-zA-Z_][a-zA-Z0-9_-]*\(/y;
 // eslint-disable-next-line no-control-regex -- control characters are excluded from strings
 const STRING_RE = /"([^"\\\x00-\x1F]|\\(["\\bnfrt/]|u[a-fA-F0-9]{4}))*"/y;
-const HEX_RE = /[0-9a-fA-F]*/y;
-const BASE64_RE = /[A-Za-z0-9+/=]*/y;
+// A hex or base64 literal is a token only as a whole; `h'zz'` or `b64'A'`
+// is text no token matches. A body that matches but does not decode (an odd
+// digit count, non-canonical base64) is a token carrying its error.
+const HEX_RE = /h'[0-9a-fA-F]*'/y;
+const BASE64_RE = /b64'[A-Za-z0-9+/=]{2,}'/y;
 const KNOWN_VALUE_NUMBER_RE = /'(0|[1-9][0-9]*)'/y;
 const KNOWN_VALUE_NAME_RE = /'([a-zA-Z_][a-zA-Z0-9_-]*)'/y;
 const UR_RE = /ur:([a-zA-Z0-9][a-zA-Z0-9-]*)\/([a-zA-Z]{8,})/y;
@@ -92,6 +203,7 @@ const KEYWORDS: readonly (readonly [string, ValuelessKind | "Bool", boolean | un
   ["Unit", "Unit", undefined],
 ];
 const IDENT_CHAR = /[a-zA-Z0-9_-]/;
+const IDENT_RUN_RE = /[a-zA-Z_][a-zA-Z0-9_-]*/y;
 
 const PUNCTUATION: ReadonlyMap<string, ValuelessKind> = new Map<string, ValuelessKind>([
   ["{", "BraceOpen"],
@@ -142,14 +254,20 @@ export class Lexer implements Iterable<Token> {
   }
 
   /**
-   * The next token, or `undefined` at the end of the source.
+   * The next token, or `undefined` at the end of the source. A literal that
+   * matched its pattern but did not decode is still a token; it carries the
+   * error.
    *
-   * @throws {DcborParseError} for unrecognised text or a malformed literal
+   * @throws {DcborParseError} for text no token matches
    */
   next(): Token | undefined {
-    this._skipWhitespaceAndComments();
+    const skipStart = this._position;
+    const unterminatedComment = this._skipWhitespaceAndComments();
 
     if (this._position >= this._source.length) {
+      // At the end of the source the span is empty and sits at the end.
+      this._tokenStart = this._position;
+      this._tokenEnd = this._position;
       return undefined;
     }
 
@@ -168,8 +286,18 @@ export class Lexer implements Iterable<Token> {
       this._tryMatchPunctuation();
 
     if (result === undefined) {
-      // Unrecognised text: one character, so the caller can report and stop.
-      this._position++;
+      // Unrecognised text spans what a scanner reads before giving up: a
+      // whitespace run that ends in an unterminated `/…` comment fails as one
+      // run, from its start to the end of the source; text that starts like
+      // an identifier is the whole identifier; anything else is one code point.
+      if (unterminatedComment) {
+        this._tokenStart = skipStart;
+        this._position = this._source.length;
+      } else {
+        const run = this._exec(IDENT_RUN_RE);
+        this._position +=
+          run !== null ? run[0].length : String.fromCodePoint(this._codePoint()).length;
+      }
       this._tokenEnd = this._position;
       throw DcborParseError.unrecognizedToken(this.span);
     }
@@ -177,14 +305,23 @@ export class Lexer implements Iterable<Token> {
     return result;
   }
 
+  /** The code point at the current position. */
+  private _codePoint(): number {
+    return this._source.codePointAt(this._position) ?? 0;
+  }
+
   /** Finishes a token at the current position. */
-  private _done<T extends { readonly type: TokenKind }>(token: T): Spanned<T> {
+  private _done<T extends { readonly type: TokenKind }>(token: T): T & { readonly span: Span } {
     this._tokenEnd = this._position;
     return Object.freeze({ ...token, span: this.span });
   }
 
-  /** Skips spaces, tabs, newlines, form feeds, `/…/` comments and `#` comments to the end of the line. */
-  private _skipWhitespaceAndComments(): void {
+  /**
+   * Skips spaces, tabs, newlines, form feeds, `/…/` comments and `#` comments
+   * to the end of the line. `true` when it stopped at a `/` with no closing
+   * `/`: the run is not whitespace then, and `next()` reports it as one.
+   */
+  private _skipWhitespaceAndComments(): boolean {
     while (this._position < this._source.length) {
       const ch = this._source[this._position];
 
@@ -194,8 +331,7 @@ export class Lexer implements Iterable<Token> {
       }
 
       // An inline comment is `/` … `/` with no `/` inside, so `//` is an
-      // empty comment. Without a closing `/` the character is not a comment
-      // and is left for the token matchers to reject.
+      // empty comment.
       if (ch === "/") {
         let scan = this._position + 1;
         while (scan < this._source.length && this._source[scan] !== "/") {
@@ -205,7 +341,7 @@ export class Lexer implements Iterable<Token> {
           this._position = scan + 1;
           continue;
         }
-        break;
+        return true;
       }
 
       if (ch === "#") {
@@ -217,6 +353,7 @@ export class Lexer implements Iterable<Token> {
 
       break;
     }
+    return false;
   }
 
   private _tryMatchKeyword(): Token | undefined {
@@ -243,11 +380,11 @@ export class Lexer implements Iterable<Token> {
     // dcbor's date parser owns the grammar (nanosecond fractions, offsets,
     // the `:60` leap second, calendar validation); a rejection is
     // `InvalidDateString` over the literal.
-    let value: CborDate;
+    let value: DcborResult<CborDate, DcborParseError>;
     try {
-      value = CborDate.fromString(dateStr);
+      value = ok(CborDate.fromString(dateStr));
     } catch {
-      throw DcborParseError.invalidDateString(dateStr, this.span);
+      value = err(DcborParseError.invalidDateString(dateStr, this.span));
     }
     return this._done({ type: "DateLiteral", value });
   }
@@ -271,13 +408,16 @@ export class Lexer implements Iterable<Token> {
       this._tokenEnd = this._position;
 
       const parsed = parseU64(numStr);
-      if (parsed === undefined) {
-        throw DcborParseError.invalidTagValue(
-          numStr,
-          span(this._tokenStart, this._tokenStart + numStr.length),
-        );
-      }
-      return this._done({ type: "TagValue", value: parsed });
+      const value =
+        parsed !== undefined
+          ? ok(parsed)
+          : err(
+              DcborParseError.invalidTagValue(
+                numStr,
+                span(this._tokenStart, this._tokenStart + numStr.length),
+              ),
+            );
+      return this._done({ type: "TagValue", value });
     }
 
     this._position += numStr.length;
@@ -299,63 +439,39 @@ export class Lexer implements Iterable<Token> {
     }
 
     const match = this._exec(STRING_RE);
-    if (match !== null) {
-      const fullMatch = match[0];
-      this._position += fullMatch.length;
-      return this._done({ type: "String", value: fullMatch.slice(1, -1) });
-    }
-
-    // A malformed string is unrecognised at its opening quote; the caller
-    // reports and stops there.
-    this._position++;
-    this._tokenEnd = this._position;
-    throw DcborParseError.unrecognizedToken(this.span);
+    if (match === null) return undefined;
+    const fullMatch = match[0];
+    this._position += fullMatch.length;
+    return this._done({ type: "String", value: fullMatch });
   }
 
   private _tryMatchByteStringHex(): Token | undefined {
-    if (!this._matchLiteral("h'")) {
-      return undefined;
-    }
-
     const match = this._exec(HEX_RE);
-    const hexPart = match !== null ? match[0] : "";
-    this._position += hexPart.length;
+    if (match === null) return undefined;
 
-    if (this._source[this._position] !== "'") {
-      this._tokenEnd = this._position;
-      throw DcborParseError.invalidHexString(this.span);
-    }
-    this._position++;
+    const digits = match[0].slice(2, -1);
+    this._position += match[0].length;
     this._tokenEnd = this._position;
 
-    if (hexPart.length % 2 !== 0) {
-      throw DcborParseError.invalidHexString(this.span);
-    }
-    return this._done({ type: "ByteStringHex", value: hexToBytes(hexPart) });
+    const value =
+      digits.length % 2 === 0
+        ? ok(hexToBytes(digits))
+        : err(DcborParseError.invalidHexString(this.span));
+    return this._done({ type: "ByteStringHex", value });
   }
 
   private _tryMatchByteStringBase64(): Token | undefined {
-    if (!this._matchLiteral("b64'")) {
-      return undefined;
-    }
-
     const match = this._exec(BASE64_RE);
-    const base64Part = match !== null ? match[0] : "";
-    this._position += base64Part.length;
+    if (match === null) return undefined;
 
-    if (this._source[this._position] !== "'") {
-      this._tokenEnd = this._position;
-      throw DcborParseError.invalidBase64String(this.span);
-    }
-    this._position++;
+    const body = match[0].slice(4, -1);
+    this._position += match[0].length;
     this._tokenEnd = this._position;
 
-    // The literal needs at least two characters.
-    const bytes = base64Part.length < 2 ? undefined : base64ToBytes(base64Part);
-    if (bytes === undefined) {
-      throw DcborParseError.invalidBase64String(this.span);
-    }
-    return this._done({ type: "ByteStringBase64", value: bytes });
+    const bytes = base64ToBytes(body);
+    const value =
+      bytes !== undefined ? ok(bytes) : err(DcborParseError.invalidBase64String(this.span));
+    return this._done({ type: "ByteStringBase64", value });
   }
 
   private _tryMatchKnownValue(): Token | undefined {
@@ -376,28 +492,25 @@ export class Lexer implements Iterable<Token> {
       this._position += fullMatch.length;
       this._tokenEnd = this._position;
 
-      const value = parseU64(numStr);
-      if (value === undefined) {
-        throw DcborParseError.invalidKnownValue(
-          numStr,
-          span(this._tokenStart + 1, this._tokenEnd - 1),
-        );
-      }
+      const parsed = parseU64(numStr);
+      const value =
+        parsed !== undefined
+          ? ok(parsed)
+          : err(
+              DcborParseError.invalidKnownValue(
+                numStr,
+                span(this._tokenStart + 1, this._tokenEnd - 1),
+              ),
+            );
       return this._done({ type: "KnownValueNumber", value });
     }
 
     match = this._exec(KNOWN_VALUE_NAME_RE);
-    if (match !== null) {
-      const fullMatch = match[0];
-      const name = match[1];
-      this._position += fullMatch.length;
-      return this._done({ type: "KnownValueName", value: name });
-    }
-
-    // A malformed known value is unrecognised at its opening quote.
-    this._position++;
-    this._tokenEnd = this._position;
-    throw DcborParseError.unrecognizedToken(this.span);
+    if (match === null) return undefined;
+    const fullMatch = match[0];
+    const name = match[1];
+    this._position += fullMatch.length;
+    return this._done({ type: "KnownValueName", value: name });
   }
 
   private _tryMatchUR(): Token | undefined {
@@ -408,12 +521,12 @@ export class Lexer implements Iterable<Token> {
     this._position += fullMatch.length;
     this._tokenEnd = this._position;
 
-    let value: UR;
+    let value: DcborResult<UR, DcborParseError>;
     try {
-      value = UR.parse(fullMatch);
+      value = ok(UR.parse(fullMatch));
     } catch (e) {
       const cause = e instanceof Error ? e.message : String(e);
-      throw DcborParseError.invalidUr(cause, this.span);
+      value = err(DcborParseError.invalidUr(cause, this.span));
     }
     return this._done({ type: "UR", value });
   }
@@ -429,14 +542,6 @@ export class Lexer implements Iterable<Token> {
   private _exec(re: RegExp): RegExpExecArray | null {
     re.lastIndex = this._position;
     return re.exec(this._source);
-  }
-
-  private _matchLiteral(literal: string): boolean {
-    if (this._source.startsWith(literal, this._position)) {
-      this._position += literal.length;
-      return true;
-    }
-    return false;
   }
 }
 

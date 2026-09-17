@@ -1,4 +1,4 @@
-import { a as DcborComposeErrorTyped, c as DcborParseErrorDetails, d as DcborResult, f as Span, h as spanToByteOffsets, i as DcborComposeErrorDetailsByCode, l as DcborParseErrorDetailsByCode, m as span, n as DcborComposeErrorCode, o as DcborParseError, p as TokenKind, r as DcborComposeErrorDetails, s as DcborParseErrorCode, t as DcborComposeError, u as DcborParseErrorTyped } from "./error-BtUGgXI-.mjs";
+import { _ as TokenKind, a as DcborComposeErrorTyped, c as DcborParseErrorDetails, d as DcborResult, f as Span, g as Token, i as DcborComposeErrorDetailsByCode, l as DcborParseErrorDetailsByCode, m as spanToByteOffsets, n as DcborComposeErrorCode, o as DcborParseError, p as span, r as DcborComposeErrorDetails, s as DcborParseErrorCode, t as DcborComposeError, u as DcborParseErrorTyped } from "./error-TWnNjDuf.mjs";
 import { Cbor, ReadonlyTagsStore } from "@blockchaincommons/dcbor";
 import { KnownValue } from "@blockchaincommons/known-values";
 //#region src/parse.d.ts
@@ -20,7 +20,11 @@ interface ParseOptions {
 interface ParsedPrefix {
   /** The first item of the source. */
   readonly value: Cbor;
-  /** The number of UTF-16 code units consumed, trailing whitespace and comments included. */
+  /**
+   * The number of UTF-16 code units consumed, trailing whitespace and comments
+   * included. When an unterminated `/…` comment follows, the whitespace run it
+   * ends is not consumed and `length` is where that run began.
+   */
   readonly length: number;
 }
 /**
@@ -30,13 +34,13 @@ interface ParsedPrefix {
  * @throws {DcborParseError} for text that does not parse
  * @throws {TypeError} for a `src` that is not a string or an option of the wrong type
  */
-export declare function parseDcbor(src: string, options?: ParseOptions): Cbor;
+export declare function parseDcborItem(src: string, options?: ParseOptions): Cbor;
 /**
- * `parseDcbor` as a `Result` instead of a throw. Every string is an outcome;
+ * `parseDcborItem` as a `Result` instead of a throw. Every string is an outcome;
  * a `src` that is not a string or an option of the wrong type still throws
  * `TypeError`.
  */
-export declare function tryParseDcbor(src: string, options?: ParseOptions): DcborResult<Cbor, DcborParseError>;
+export declare function tryParseDcborItem(src: string, options?: ParseOptions): DcborResult<Cbor, DcborParseError>;
 /**
  * Parses the first dCBOR item of `src` and reports how much of the source
  * it consumed, leaving the rest for the caller.
@@ -44,9 +48,9 @@ export declare function tryParseDcbor(src: string, options?: ParseOptions): Dcbo
  * @throws {DcborParseError} for text that does not parse
  * @throws {TypeError} for a `src` that is not a string or an option of the wrong type
  */
-export declare function parseDcborPrefix(src: string, options?: ParseOptions): ParsedPrefix;
-/** `parseDcborPrefix` as a `Result` instead of a throw; the `TypeError` contract of `tryParseDcbor` applies. */
-export declare function tryParseDcborPrefix(src: string, options?: ParseOptions): DcborResult<ParsedPrefix, DcborParseError>;
+export declare function parseDcborItemPartial(src: string, options?: ParseOptions): ParsedPrefix;
+/** `parseDcborItemPartial` as a `Result` instead of a throw; the `TypeError` contract of `tryParseDcborItem` applies. */
+export declare function tryParseDcborItemPartial(src: string, options?: ParseOptions): DcborResult<ParsedPrefix, DcborParseError>;
 //#endregion
 //#region src/compose.d.ts
 /**
@@ -68,5 +72,5 @@ export declare function tryComposeDcborArray(items: readonly string[], options?:
 /** `composeDcborMap` as a `Result` instead of a throw; a `TypeError` still throws. */
 export declare function tryComposeDcborMap(items: readonly string[], options?: ParseOptions): DcborResult<Cbor, DcborComposeError>;
 //#endregion
-export { DcborComposeError, DcborComposeErrorCode, type DcborComposeErrorDetails, type DcborComposeErrorDetailsByCode, type DcborComposeErrorTyped, DcborParseError, DcborParseErrorCode, type DcborParseErrorDetails, type DcborParseErrorDetailsByCode, type DcborParseErrorTyped, type DcborResult, type KnownValueResolver, type ParseOptions, type ParsedPrefix, type Span, type TokenKind, span, spanToByteOffsets };
+export { DcborComposeError, DcborComposeErrorCode, type DcborComposeErrorDetails, type DcborComposeErrorDetailsByCode, type DcborComposeErrorTyped, DcborParseError, DcborParseErrorCode, type DcborParseErrorDetails, type DcborParseErrorDetailsByCode, type DcborParseErrorTyped, type DcborResult, type KnownValueResolver, type ParseOptions, type ParsedPrefix, type Span, type Token, type TokenKind, span, spanToByteOffsets };
 //# sourceMappingURL=index.d.mts.map

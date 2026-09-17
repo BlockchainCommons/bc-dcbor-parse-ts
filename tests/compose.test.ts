@@ -5,7 +5,7 @@
 import { diagnostic } from "@blockchaincommons/dcbor/diagnostic";
 import { describe, it, expect } from "vitest";
 import {} from "@blockchaincommons/dcbor";
-import { tryParseDcbor } from "../src/parse";
+import { tryParseDcborItem } from "../src/parse";
 import { tryComposeDcborArray, tryComposeDcborMap } from "../src/compose";
 
 function toDiagnosticFlat(cbor: Parameters<typeof diagnostic>[0]): string {
@@ -20,7 +20,7 @@ function roundtripArray(array: readonly string[], expectedDiag: string): void {
     expect(diag).toBe(expectedDiag);
 
     // Parse it back and verify
-    const parseResult = tryParseDcbor(diag);
+    const parseResult = tryParseDcborItem(diag);
     expect(parseResult.ok).toBe(true);
     if (parseResult.ok) {
       expect(toDiagnosticFlat(parseResult.value)).toBe(toDiagnosticFlat(result.value));
@@ -36,7 +36,7 @@ function roundtripMap(array: readonly string[], expectedDiag: string): void {
     expect(diag).toBe(expectedDiag);
 
     // Parse it back and verify
-    const parseResult = tryParseDcbor(diag);
+    const parseResult = tryParseDcborItem(diag);
     expect(parseResult.ok).toBe(true);
     if (parseResult.ok) {
       expect(toDiagnosticFlat(parseResult.value)).toBe(toDiagnosticFlat(result.value));
