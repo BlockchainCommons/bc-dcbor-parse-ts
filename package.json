@@ -90,6 +90,11 @@
   "engines": {
     "node": ">=22.12"
   },
+  "dependencies": {
+    "@blockchaincommons/dcbor": "^1.0.0-beta.3",
+    "@blockchaincommons/known-values": "^1.0.0-beta.4",
+    "@blockchaincommons/uniform-resources": "^1.0.0-beta.3"
+  },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
     "@blockchaincommons/tags": "^1.0.0-beta.3",
@@ -111,10 +116,5 @@
     "typescript": "^7.0.2",
     "typescript6": "npm:typescript@^6.0.3",
     "vitest": "^5.0.1"
-  },
-  "dependencies": {
-    "@blockchaincommons/dcbor": "^1.0.0-beta.3",
-    "@blockchaincommons/known-values": "^1.0.0-beta.3",
-    "@blockchaincommons/uniform-resources": "^1.0.0-beta.3"
   }
 }
