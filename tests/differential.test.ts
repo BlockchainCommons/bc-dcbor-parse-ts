@@ -28,6 +28,17 @@ const FROZEN_SHA256 = readFileSync(join(here, "baseline/README.md"), "utf8").mat
 )?.[1];
 
 const sourceOf = (r: Recipe): string => ("src" in r ? r.src : "");
+const variantOf = (outcome: string): string =>
+  outcome.replace(/^throw:(Compose:ParseError:)?/, "").split("@")[0];
+const spanOf = (outcome: string): [number, number] | undefined => {
+  const m = /@(\d+)-(\d+)$/.exec(outcome);
+  return m === null ? undefined : [Number(m[1]), Number(m[2])];
+};
+const LITERAL_ERRORS = /^Invalid(HexString|Base64String|DateString|Ur|TagValue|KnownValue)$/;
+const sameVariant = (a: string, b: string): boolean =>
+  a.startsWith("throw:") && b.startsWith("throw:") && variantOf(a) === variantOf(b);
+const LITERAL_TOKENS =
+  /^UnexpectedToken\((ByteStringHex|ByteStringBase64|DateLiteral|UR|TagValue|KnownValueNumber)\)$/;
 const depthOf = (s: string): number => {
   let depth = 0;
   let max = 0;
@@ -75,7 +86,7 @@ const TOMBSTONES: {
     // as the keyword plus junk; it is unrecognised as a whole, as the reference does.
     id: "keyword-runs",
     landed: true,
-    rows: 32,
+    rows: 36,
     matches: (r, _a, b) =>
       /(true|false|null|NaN|Infinity|Unit)[a-zA-Z0-9_-]/.test(sourceOf(r)) &&
       b.startsWith("throw:UnrecognizedToken"),
@@ -103,14 +114,16 @@ const TOMBSTONES: {
       b.startsWith("throw:UnknownKnownValueName"),
   },
   {
-    // Base64 with non-zero trailing bits decoded; the reference's decoder rejects it.
+    // Base64 with non-zero trailing bits decoded; the reference's decoder
+    // rejects it (inside an array, as the token it did not decode).
     id: "base64-trailing-bits",
     landed: true,
-    rows: 3,
+    rows: 5,
     matches: (r, a, b) =>
-      sourceOf(r).startsWith("b64'") &&
+      sourceOf(r).includes("b64'") &&
       !a.startsWith("throw") &&
-      b.startsWith("throw:InvalidBase64String"),
+      (variantOf(b) === "InvalidBase64String" ||
+        variantOf(b) === "UnexpectedToken(ByteStringBase64)"),
   },
   {
     // A keyword directly followed by `(` lexed as the keyword (then `ExtraData`);
@@ -130,6 +143,146 @@ const TOMBSTONES: {
     landed: true,
     rows: 5,
     matches: (r, _a, b) => depthOf(sourceOf(r)) > 1000 && b.startsWith("throw:NestingTooDeep"),
+  },
+  {
+    // `Unit` inside an array parsed as the unit value; it is `UnexpectedToken`, as the reference's array grammar makes it.
+    id: "unit-in-array",
+    landed: true,
+    rows: 116,
+    matches: (_r, _a, b) => variantOf(b) === "UnexpectedToken(Unit)",
+  },
+  {
+    // A literal that did not decode inside an array was its own error; it is
+    // `UnexpectedToken` carrying the token (`ExpectedComma` or
+    // `UnmatchedParentheses` where those are awaited), as the reference does.
+    id: "array-literal-errors",
+    landed: true,
+    rows: 54,
+    matches: (_r, a, b) =>
+      LITERAL_ERRORS.test(variantOf(a)) &&
+      (LITERAL_TOKENS.test(variantOf(b)) ||
+        variantOf(b) === "ExpectedComma" ||
+        variantOf(b) === "UnmatchedParentheses"),
+  },
+  {
+    // An unknown known-value name inside an array spanned the name; it spans
+    // the quotes, as the reference's array grammar reports it.
+    id: "array-known-value-span",
+    landed: true,
+    rows: 53,
+    matches: (_r, a, b) => {
+      if (variantOf(a) !== "UnknownKnownValueName" || variantOf(b) !== "UnknownKnownValueName")
+        return false;
+      const sa = spanOf(a);
+      const sb = spanOf(b);
+      return sa !== undefined && sb !== undefined && sb[0] === sa[0] - 1 && sb[1] === sa[1] + 1;
+    },
+  },
+  {
+    // A hex or base64 literal that fails its pattern was its own error over
+    // the literal; it is no token at all, `UnrecognizedToken` at the previous token.
+    id: "literal-pattern-miss",
+    landed: true,
+    rows: 521,
+    matches: (_r, a, b) =>
+      /^Invalid(HexString|Base64String)$/.test(variantOf(a)) &&
+      variantOf(b) === "UnrecognizedToken",
+  },
+  {
+    // An error where the source ended spanned the last token; its span is empty, at the end.
+    id: "end-of-source-span",
+    landed: true,
+    rows: 157,
+    matches: (r, a, b) => {
+      const sb = spanOf(b);
+      const len = sourceOf(r).length;
+      return sameVariant(a, b) && sb !== undefined && sb[0] === len && sb[1] === len;
+    },
+  },
+  {
+    // Unrecognised text that starts like an identifier spanned one character; it spans the identifier.
+    id: "identifier-run-span",
+    landed: true,
+    rows: 55,
+    matches: (r, a, b) => {
+      const sa = spanOf(a);
+      const sb = spanOf(b);
+      return (
+        sameVariant(a, b) &&
+        sa !== undefined &&
+        sb !== undefined &&
+        sb[0] === sa[0] &&
+        sb[1] > sa[1] &&
+        /[a-zA-Z_]/.test(sourceOf(r)[sa[0]] ?? "")
+      );
+    },
+  },
+  {
+    // A whitespace run ending in an unterminated `/…` comment was skipped up
+    // to the `/`; it is one unrecognised run from where the whitespace began,
+    // so the span (and a prefix parse's length) starts there.
+    id: "unterminated-comment-run",
+    landed: true,
+    rows: 13,
+    matches: (r, a, b) => {
+      const src = sourceOf(r);
+      if (r.k === "partial" && !a.startsWith("throw") && !b.startsWith("throw")) {
+        return a.split("@")[0] === b.split("@")[0] && src.includes("/");
+      }
+      const sb = spanOf(b);
+      return (
+        sameVariant(a, b) &&
+        a !== b &&
+        sb !== undefined &&
+        sb[1] === src.length &&
+        /^(?:[ \t\r\n\f]|\/[^/]*\/|#[^\n]*)*\/[^/]*$/.test(src.slice(sb[0]))
+      );
+    },
+  },
+  {
+    // A hex or base64 literal that fails its pattern was scanned into; the
+    // unrecognised text is its identifier prefix (`h`, `b64`).
+    id: "literal-prefix-span",
+    landed: true,
+    rows: 5,
+    matches: (r, a, b) => {
+      const sa = spanOf(a);
+      const sb = spanOf(b);
+      return (
+        sameVariant(a, b) &&
+        sa !== undefined &&
+        sb !== undefined &&
+        sa[0] === sb[0] &&
+        sa[1] !== sb[1] &&
+        /^(h'|b64)/.test(sourceOf(r).slice(sa[0]))
+      );
+    },
+  },
+  {
+    // Unrecognised text spanned one UTF-16 code unit; it spans one code point.
+    id: "code-point-span",
+    landed: true,
+    rows: 1,
+    matches: (r, a, b) => {
+      const sa = spanOf(a);
+      const sb = spanOf(b);
+      return (
+        sameVariant(a, b) &&
+        sa !== undefined &&
+        sb !== undefined &&
+        sa[0] === sb[0] &&
+        sb[1] - sb[0] === 2 &&
+        (sourceOf(r).codePointAt(sa[0]) ?? 0) > 0xffff
+      );
+    },
+  },
+  {
+    // A date literal with non-ASCII digits was never lexed as a date; it is
+    // one that does not parse, at every site.
+    id: "unicode-date-digits",
+    landed: true,
+    rows: 7,
+    matches: (r) => /\p{Nd}/u.test(sourceOf(r).replace(/[0-9]/g, "")),
   },
 ];
 

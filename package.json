@@ -1,6 +1,6 @@
 {
   "name": "@blockchaincommons/dcbor-parse",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "type": "module",
   "sideEffects": false,
   "description": "dCBOR Diagnostic Parser and Composer for TypeScript",
@@ -73,7 +73,7 @@
     "api:check": "bun scripts/api-snapshot.ts --check && bun scripts/api-report.ts",
     "clean": "rm -rf dist",
     "docs": "typedoc",
-    "postinstall": "bun scripts/pin-lint-typescript.ts",
+    "prepare": "bun scripts/pin-lint-typescript.ts",
     "prepublishOnly": "npm run build",
     "lint:pkg": "publint && attw --pack . --profile node16",
     "check:deps": "node -e \"const p=require('./package.json');for(const g of ['dependencies','devDependencies','peerDependencies','optionalDependencies'])for(const [n,r] of Object.entries(p[g]||{})){if(n.startsWith('@bcts/')||String(r).startsWith('workspace:')){console.error(g+': '+n+'@'+r+' is not publishable');process.exit(1)}}console.log('dependencies are publishable')\"",

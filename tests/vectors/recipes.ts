@@ -151,13 +151,13 @@ export function frozenAdapterFor(m: any): VectorApi {
   };
 }
 
-/** The current surface: throwing `parseDcbor` and friends with `DcborParseError { code, details }`. */
+/** The current surface: throwing `parseDcborItem` and friends with `DcborParseError { code, details }`. */
 export function adapterFor(m: any, deps: { registerTags: () => void }): VectorApi {
   deps.registerTags();
   return {
-    parse: (src) => m.parseDcbor(src).toData(),
+    parse: (src) => m.parseDcborItem(src).toData(),
     partial: (src) => {
-      const { value, length } = m.parseDcborPrefix(src);
+      const { value, length } = m.parseDcborItemPartial(src);
       return [value.toData(), length];
     },
     composeArray: (items) => m.composeDcborArray(items).toData(),
@@ -171,7 +171,7 @@ export function adapterFor(m: any, deps: { registerTags: () => void }): VectorAp
       const x: any = e;
       const parseShape = (e: any): unknown => ({
         type: e.code,
-        kind: e.details?.kind ?? e.details?.token?.type,
+        kind: e.details?.token?.type,
         span: e.details?.span,
       });
       if (x?.name === "DcborComposeError") {

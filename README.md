@@ -22,22 +22,25 @@ yarn add @blockchaincommons/dcbor-parse
 bun add @blockchaincommons/dcbor-parse
 ```
 
-**Requirements:** TypeScript >= 5.7 is required to consume the published types. Node >= 22.12 is required.
-
 ## Usage Instructions
 
 ```typescript
-import { parseDcbor, tryParseDcbor, parseDcborPrefix, DcborParseError } from "@blockchaincommons/dcbor-parse";
+import {
+  parseDcborItem,
+  tryParseDcborItem,
+  parseDcborItemPartial,
+  DcborParseError,
+} from "@blockchaincommons/dcbor-parse";
 import { registerTags } from "@blockchaincommons/tags";
 import { getGlobalTagsStore } from "@blockchaincommons/dcbor";
 
 registerTags(getGlobalTagsStore()); // so `date(…)`, `envelope(…)`, `ur:…` resolve by name
 
-const value = parseDcbor(`[1, "two", h'0304', 'isA', date(2023-12-25), {"k": 40024(1)}]`);
+const value = parseDcborItem(`[1, "two", h'0304', 'isA', date(2023-12-25), {"k": 40024(1)}]`);
 value.toData(); // the dCBOR bytes
 
 try {
-  parseDcbor("[1, 2");
+  parseDcborItem("[1, 2");
 } catch (e) {
   if (DcborParseError.isDcborParseError(e)) {
     e.code; // "UnexpectedEndOfInput"
@@ -45,8 +48,8 @@ try {
   }
 }
 
-const r = tryParseDcbor("nope"); // { ok: false, error: DcborParseError }
-const { value: first, length } = parseDcborPrefix("42 ]"); // the item and how much source it took
+const r = tryParseDcborItem("nope"); // { ok: false, error: DcborParseError }
+const { value: first, length } = parseDcborItemPartial("42 ]"); // the item and how much source it took
 ```
 
 ### Options
@@ -58,40 +61,6 @@ Every parse and compose function takes an optional second argument:
 | `tags` | the global tags store | where tag names (`date(…)`) and UR types (`ur:date/…`) resolve; any `ReadonlyTagsStore` |
 | `knownValues` | the global known-values store | where known-value names (`'isA'`) resolve; anything with `byName(name)` |
 | `maxDepth` | `1000` | the deepest nesting of arrays, maps and tags accepted; deeper input is `NestingTooDeep` |
-
-One global tags store and one global known-values store exist per module
-graph. A CommonJS build and an ESM build of a package are two module
-graphs: a name registered into one is invisible to the other. When both can
-be loaded in one process, pass `{ tags, knownValues }` explicitly.
-
-### Errors
-
-`parseDcbor` and `parseDcborPrefix` throw `DcborParseError`; the `try…`
-forms return `{ ok: true, value } | { ok: false, error }` instead and never
-throw for string input. `error.code` is one of the `DcborParseErrorCode`
-names (the reference's variants plus `NestingTooDeep`), `error.details` is
-typed by `code` (the span, and for example `name` for `UnknownTagName` or
-`kind` and `text` for `UnexpectedToken`), `error.span` is the span when
-there is one, and `error.fullMessage(source)` renders the source line with
-a caret. `composeDcborArray` and `composeDcborMap` throw
-`DcborComposeError`, whose `ParseError` carries the item's error as `cause`.
-
-Spans are UTF-16 code-unit offsets into the source string;
-`spanToByteOffsets(source, span)` gives the UTF-8 byte offsets the Rust
-reference reports.
-
-An argument of the wrong type — a `src` that is not a string, `options` that
-is not an object, `items` that is not an array of strings — throws a
-`TypeError` from every form, including the `try…` ones: that is a
-programming error, not a parse outcome.
-
-### What the notation means here
-
-String escape sequences are validated but kept as written: `"a\nb"` encodes
-the backslash and the `n`, as the reference does. Base64 literals must be
-canonical (padded, with zero trailing bits). Date literals follow dcbor's
-grammar: nanosecond fractions, offsets below 24 hours, the `:60` leap
-second, years from 0000.
 
 ### Lexer
 
@@ -115,6 +84,7 @@ Runnable examples live in the [`examples/`](https://github.com/BlockchainCommons
 
 ### Version History
 
+- **1.0.0-beta.2 (September 16, 2026)** - Entry-point names (`parseDcborItem`, `parseDcborItemPartial`) and its error taxonomy inside arrays, its error spans and its literal rules; `UnexpectedToken` carries the token.
 - **1.0.0-beta.1 (September 16, 2026)** - Initial beta implementation.
 
 ### Roadmap
@@ -129,7 +99,7 @@ Runnable examples live in the [`examples/`](https://github.com/BlockchainCommons
 To build and work on this library, you'll need the following tools:
 
 - [Node.js](https://nodejs.org/) >= 22.12 - JavaScript runtime.
-- [Bun](https://bun.sh/) - used in CI to install dependencies and run scripts (any Node-compatible package manager also works).
+- [Bun](https://bun.sh/) - used to install dependencies and run scripts (any node package manager works).
 - [TypeScript](https://www.typescriptlang.org/) >= 5.7 - language and type checker.
 
 ### Derived from ...
@@ -137,7 +107,7 @@ To build and work on this library, you'll need the following tools:
 This `bc-dcbor-parse-ts` project is either derived from or was inspired by:
 
 - [BlockchainCommons/bc-dcbor-parse-rust](https://github.com/BlockchainCommons/bc-dcbor-parse-rust) - The reference Rust implementation, by [Wolf McNally](https://github.com/wolfmcnally).
-- [paritytech/bcts](https://github.com/paritytech/bcts) - A TypeScript port covering many Blockchain Commons' implementations, by [Parity Technologies](https://github.com/paritytech).
+- [paritytech/bcts](https://github.com/paritytech/bcts) - A TypeScript port of many Blockchain Commons' specs, by [Parity Technologies](https://github.com/paritytech).
 
 ## Financial Support
 

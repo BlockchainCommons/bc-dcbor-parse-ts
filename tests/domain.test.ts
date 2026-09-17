@@ -44,9 +44,9 @@ export const outcome = (f: () => unknown): string => {
 };
 
 type AnyFn = (...args: unknown[]) => unknown;
-const parse = P.parseDcbor as unknown as AnyFn;
-const tryParse = P.tryParseDcbor as unknown as AnyFn;
-const prefix = P.parseDcborPrefix as unknown as AnyFn;
+const parse = P.parseDcborItem as unknown as AnyFn;
+const tryParse = P.tryParseDcborItem as unknown as AnyFn;
+const partial = P.parseDcborItemPartial as unknown as AnyFn;
 const composeArray = P.composeDcborArray as unknown as AnyFn;
 
 const rows: Record<string, () => unknown> = {
@@ -71,9 +71,9 @@ const rows: Record<string, () => unknown> = {
   "[ x 1001": () => parse("[".repeat(1001)),
   "[ x 5000": () => parse("[".repeat(5000)),
   "balanced 5000": () => parse("[".repeat(5000) + "]".repeat(5000)),
-  "tryParseDcbor [ x 5000": () => tryParse("[".repeat(5000)),
+  "tryParseDcborItem [ x 5000": () => tryParse("[".repeat(5000)),
   // prefix before an unterminated comment; Unicode digits
-  "prefix '1 /unterminated'": () => prefix("1 /unterminated"),
+  "partial '1 /unterminated'": () => partial("1 /unterminated"),
   "arabic-indic digits": () => parse("٢٠٢٣-01-01"),
   // inputs that panic the reference
   "2023-01-01T": () => parse("2023-01-01T"),
@@ -86,16 +86,16 @@ const rows: Record<string, () => unknown> = {
   "'' with a resolver that has no ''": () =>
     parse("''", { knownValues: { byName: () => undefined } }),
   // argument domain
-  "parseDcbor(undefined)": () => parse(undefined),
-  "parseDcbor(null)": () => parse(null),
-  "parseDcbor(123)": () => parse(123),
-  "tryParseDcbor(undefined)": () => tryParse(undefined),
-  'parseDcbor("1", null)': () => parse("1", null),
-  'parseDcbor("1", 5)': () => parse("1", 5),
-  'parseDcbor("date(1)", { tags: 5 })': () => parse("date(1)", { tags: 5 }),
-  "parseDcbor(\"'isA'\", { knownValues: {} })": () => parse("'isA'", { knownValues: {} }),
-  'parseDcbor("1", { maxDepth: 0 })': () => parse("1", { maxDepth: 0 }),
-  'parseDcbor("1", { maxDepth: "9" })': () => parse("1", { maxDepth: "9" }),
+  "parseDcborItem(undefined)": () => parse(undefined),
+  "parseDcborItem(null)": () => parse(null),
+  "parseDcborItem(123)": () => parse(123),
+  "tryParseDcborItem(undefined)": () => tryParse(undefined),
+  'parseDcborItem("1", null)': () => parse("1", null),
+  'parseDcborItem("1", 5)': () => parse("1", 5),
+  'parseDcborItem("date(1)", { tags: 5 })': () => parse("date(1)", { tags: 5 }),
+  "parseDcborItem(\"'isA'\", { knownValues: {} })": () => parse("'isA'", { knownValues: {} }),
+  'parseDcborItem("1", { maxDepth: 0 })': () => parse("1", { maxDepth: 0 }),
+  'parseDcborItem("1", { maxDepth: "9" })': () => parse("1", { maxDepth: "9" }),
   'composeDcborArray("1")': () => composeArray("1"),
   "composeDcborArray([1])": () => composeArray([1]),
   // messages and shapes
@@ -127,7 +127,8 @@ const rows: Record<string, () => unknown> = {
     }
     return "no throw";
   },
-  'Object.isFrozen(parseDcborPrefix("1 2"))': () => Object.isFrozen(P.parseDcborPrefix("1 2")),
+  'Object.isFrozen(parseDcborItemPartial("1 2"))': () =>
+    Object.isFrozen(P.parseDcborItemPartial("1 2")),
   "isDcborParseError of a same-shaped error from another copy": () => {
     const e = Object.assign(new Error("m"), { code: "EmptyInput" });
     e.name = "DcborParseError";

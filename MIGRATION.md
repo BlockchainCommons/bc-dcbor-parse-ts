@@ -1,18 +1,13 @@
 # Migrating from `@bcts/dcbor-parse` to `@blockchaincommons/dcbor-parse`
 
-The language is unchanged for almost every input: every string that parsed
-before parses to the same bytes, and every rejection keeps its variant and
-span (proven by `tests/differential.test.ts` against the frozen build of the
-earlier surface). The exceptions are listed under *Behaviour changes*; all of
-them are fixes towards the Rust reference or a new nesting limit. What
-changed is how results and errors are delivered.
+`@blockchaincommons/dcbor-parse` is the successor to `@bcts/dcbor-parse`.
 
 ## Parsing
 
 | Before | After |
 |---|---|
-| `parseDcborItem(src): ParseResult<Cbor>` | `parseDcbor(src, options?): Cbor` (throws) or `tryParseDcbor(src, options?)` |
-| `parseDcborItemPartial(src): ParseResult<[Cbor, number]>` | `parseDcborPrefix(src, options?): { value, length }` (throws) or `tryParseDcborPrefix` |
+| `parseDcborItem(src): ParseResult<Cbor>` | `parseDcborItem(src, options?): Cbor` (throws) or `tryParseDcborItem(src, options?)` |
+| `parseDcborItemPartial(src): ParseResult<[Cbor, number]>` | `parseDcborItemPartial(src, options?): { value, length }` (throws) or `tryParseDcborItemPartial` |
 | `composeDcborArray(items): ComposeResult<Cbor>` | `composeDcborArray(items, options?): Cbor` (throws) or `tryComposeDcborArray` |
 | `composeDcborMap(items)` | `composeDcborMap(items, options?)` / `tryComposeDcborMap` |
 
@@ -28,7 +23,7 @@ error field changes below:
 ```diff
 - const r = parseDcborItem(text);
 - if (!r.ok) console.error(fullErrorMessage(r.error, text));
-+ const r = tryParseDcbor(text);
++ const r = tryParseDcborItem(text);
 + if (!r.ok) console.error(r.error.fullMessage(text));
 ```
 
@@ -41,7 +36,7 @@ class; `ComposeError` is `DcborComposeError`.
 |---|---|
 | `error.type` | `error.code` (the same PascalCase names, as `DcborParseErrorCode`) |
 | `error.span`, `error.name`, `error.value`, `error.urType`, `error.dateString` | `error.details.span` (also `error.span`), `error.details.name`, `.value`, `.urType`, `.dateString` — typed by `error.code` |
-| `error.token` (the decoded `Token`) | `error.details.kind` (the token's type name) and `error.details.text` (its source text) |
+| `error.token` (the decoded `Token`) | `error.details.token` (the same `Token`; `Token` is exported from the root as a type) |
 | `error.message` on an `InvalidUr` | `error.details.cause` |
 | `errorMessage(error)` | `error.message` |
 | `fullErrorMessage(error, source)` | `error.fullMessage(source)` |
@@ -58,7 +53,7 @@ package (ESM and CommonJS builds included).
 A `src` that is not a string, `options` that is not an object (or whose
 `tags`, `knownValues` or `maxDepth` has the wrong type), and compose `items`
 that are not an array of strings throw a `TypeError` from every form,
-including `tryParseDcbor`; before, these surfaced as engine errors from
+including `tryParseDcborItem`; before, these surfaced as engine errors from
 inside the parser or were silently accepted.
 
 Spans stay UTF-16 code-unit offsets; `spanToByteOffsets(source, span)` gives
@@ -69,9 +64,8 @@ the byte offsets the Rust reference reports.
 `Lexer` and `Token` live on `@blockchaincommons/dcbor-parse/lexer` (beta).
 `Lexer` is iterable; `next()` returns `Token | undefined` and throws
 `DcborParseError` instead of returning a result object. Every token carries
-its `span`; `lexer.span` and `lexer.slice` are getters for the last token. A
-`String` token holds the text between the quotes. The `token` constructor
-namespace is gone: tokens are plain readonly literals.
+its `span`; `lexer.span` and `lexer.slice` are getters for the last token. The
+`token` constructor namespace is gone: tokens are plain readonly literals.
 
 ## Behaviour changes
 
@@ -90,6 +84,29 @@ Towards the reference:
   `InvalidBase64String`; before it decoded.
 - `'value'` and `'Self'` no longer resolve: the bundled registry follows the
   reference's store.
+- `Unit` inside an array (`[Unit]`) is `UnexpectedToken`; it stays the unit
+  value everywhere else.
+- A literal that matches its pattern but does not decode inside an array
+  (`[h'abc']`, `[b64'QR==']`, `[2023-13-45]`) is `UnexpectedToken` carrying
+  the token (`error.details.token.value.error` is the literal's error),
+  `ExpectedComma` where a comma was awaited (`[1 h'abc']`) and
+  `UnmatchedParentheses` where a tag's `)` was (`1(1 h'abc')`); before, the
+  literal's own error was reported at every site. An unknown known-value name
+  inside an array spans its quotes (`['zzz']` → 1..6).
+- A hex or base64 literal that does not match its pattern (`h'zz'`, `h'`,
+  `b64'A'`, `b64''`, `b64'QQ =='`) is `UnrecognizedToken` at the previous
+  token; before it was `InvalidHexString` or `InvalidBase64String` over the
+  literal. A literal that matches and then fails to decode (`h'abc'`,
+  `b64'QR=='`) keeps its own error.
+- Error spans: at the end of the source the span is empty and sits at the end
+  (`42(1` → `UnmatchedParentheses` at 4..4, before 3..4); unrecognised text
+  that starts like an identifier spans the whole identifier (`1_000` →
+  `ExtraData` at 1..5, before 1..2); a whitespace run that ends in an
+  unterminated `/…` comment is one unrecognised run from where the whitespace
+  began (`1 /x` → `ExtraData` at 1..4, before 2..3), and
+  `parseDcborItemPartial("1 /x").length` is 1, before 2.
+- A date literal with non-ASCII digits (`٢٠٢٣-01-01`) is `InvalidDateString`;
+  before it was `UnrecognizedToken`.
 
 This package's own:
 

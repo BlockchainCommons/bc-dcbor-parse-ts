@@ -2,8 +2,9 @@
  * The vector corpus: the hand-written strings from both implementations'
  * test suites, a grammar-driven generator over every literal kind with
  * nesting, systematic corruptions, and focused categories for base64,
- * dates, keywords, names, prefixes, Unicode, nesting depth and the
- * JavaScript-only argument domain. Deterministic.
+ * dates, keywords, names, prefixes, Unicode, the error sites and span
+ * rules, nesting depth and the JavaScript-only argument domain.
+ * Deterministic.
  */
 import { cbor } from "@blockchaincommons/dcbor";
 import { getGlobalKnownValuesStore } from "@blockchaincommons/known-values";
@@ -589,6 +590,109 @@ export function* unicode(): Generator<Recipe> {
   ]);
 }
 
+/**
+ * A malformed literal or `Unit` at every site (array element, where a comma
+ * or a tag's `)` is awaited, map key and value, tag content, top level), and
+ * the span rules: the end of the source, identifier runs, whitespace before
+ * an unterminated comment, and text a scanner stops inside (a quoted
+ * literal, a `ur:` prefix, a hex or base64 prefix).
+ */
+export function* edges(): Generator<Recipe> {
+  const sources = [
+    // a literal that matched its pattern but did not decode, per site
+    "[h'abc']",
+    "[1,2,h'abc']",
+    "[b64'QR==']",
+    "[2023-13-45]",
+    "[1, 2023-13-45]",
+    "[99999999999999999999999(1)]",
+    "['99999999999999999999999']",
+    "[ur:foo/aaaaaaaa]",
+    "[1 h'abc']",
+    "{1: 2 h'abc'}",
+    "1(1 h'abc')",
+    "date(1 h'abc')",
+    "{1 h'abc'}",
+    "{h'abc': 1}",
+    "{1: h'abc'}",
+    "1(h'abc')",
+    "h'abc'",
+    // `Unit` per site
+    "[Unit]",
+    "[Unit 1]",
+    "[1 Unit]",
+    "[1, Unit, 2]",
+    "[[Unit]]",
+    "{[Unit]: 1}",
+    "1([Unit])",
+    "{Unit: 1}",
+    "{1: Unit}",
+    "1(Unit)",
+    // an unknown known-value name per site
+    "['zzz']",
+    "[1, 'zzz']",
+    "[1 'zzz']",
+    "{'zzz': 1}",
+    "1('zzz')",
+    // the end of the source
+    "{",
+    "{1 ",
+    "{1: 2 ",
+    "{1: 2 /c/",
+    "{1: 2 # c",
+    "42(1 ",
+    // identifier runs
+    "1 truex",
+    "{1 truex}",
+    "[1 truex]",
+    "{1: 2 truex}",
+    "1 tru",
+    "1 _a-b9",
+    "1 nullnull",
+    // whitespace before an unterminated comment
+    "1 /x",
+    "1 \t/",
+    "1 /a/ x",
+    "1 /a/ /b",
+    "{1 /x}",
+    "1/x",
+    "/x 1",
+    // a hex or base64 literal that fails its pattern
+    "h'zz'",
+    "h'",
+    "1 h'zz'",
+    "1 h'",
+    "[1, h'zz']",
+    "[b64'']",
+    "1 b64",
+    "1 b64'",
+    "1 b64'A'",
+    "1 b64''",
+    "1(1 h'zz')",
+    // text a scanner stops inside
+    "1 'a ",
+    "1 'a",
+    "1 '1a'",
+    '1 "a',
+    '1 "a\\"',
+    '1 "a\\q"',
+    '1 "a\\u12"',
+    "1 ur",
+    "1 ur:",
+    "1 ur:a",
+    "1 ur:a/",
+    "1 ur:a/abc",
+    "1 é",
+    "1 🌈",
+    // non-ASCII digits in a date, per site
+    "[2023-01-0١]",
+    "{2023-01-0١: 1}",
+    "1 2023-01-0١",
+  ];
+  yield* parseAll(sources);
+  for (const src of sources) yield { k: "partial", src };
+}
+
 /** Nesting at and past the limit. */
 export function* depth(): Generator<Recipe> {
   const open = (n: number, c: string): string => c.repeat(n);
@@ -620,6 +724,7 @@ export const categories: Record<string, () => Generator<Recipe>> = {
   names,
   prefix,
   unicode,
+  edges,
   depth,
   domain,
 };
@@ -638,6 +743,7 @@ export function* goldenRecipes(): Generator<Recipe> {
   yield* names();
   yield* prefix();
   yield* unicode();
+  yield* edges();
   yield* depth();
   yield* domain();
 }

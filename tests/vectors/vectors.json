@@ -1,5 +1,5 @@
 {
- "count": 1141,
+ "count": 1301,
  "vectors": [
   {
    "name": "parse \"true\"",
@@ -303,7 +303,7 @@
     "k": "parse",
     "src": "1_000"
    },
-   "expect": "throw:ExtraData@1-2"
+   "expect": "throw:ExtraData@1-5"
   },
   {
    "name": "parse \"0x10\"",
@@ -311,7 +311,7 @@
     "k": "parse",
     "src": "0x10"
    },
-   "expect": "throw:ExtraData@1-2"
+   "expect": "throw:ExtraData@1-4"
   },
   {
    "name": "parse \"+1\"",
@@ -551,7 +551,7 @@
     "k": "parse",
     "src": "h'zz'"
    },
-   "expect": "throw:InvalidHexString@0-2"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"h'abc'\"",
@@ -567,7 +567,7 @@
     "k": "parse",
     "src": "h'de ad'"
    },
-   "expect": "throw:InvalidHexString@0-4"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"b64''\"",
@@ -575,7 +575,7 @@
     "k": "parse",
     "src": "b64''"
    },
-   "expect": "throw:InvalidBase64String@0-5"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"b64'A'\"",
@@ -583,7 +583,7 @@
     "k": "parse",
     "src": "b64'A'"
    },
-   "expect": "throw:InvalidBase64String@0-6"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"b64'QQ=='\"",
@@ -655,7 +655,7 @@
     "k": "parse",
     "src": "b64'!!!invalid!!!'"
    },
-   "expect": "throw:InvalidBase64String@0-4"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"b64'SGVsbG8gV29ybGQ'\"",
@@ -935,7 +935,7 @@
     "k": "parse",
     "src": "42(1"
    },
-   "expect": "throw:UnmatchedParentheses@3-4"
+   "expect": "throw:UnmatchedParentheses@4-4"
   },
   {
    "name": "parse \"42(1,2)\"",
@@ -1391,7 +1391,7 @@
     "k": "parse",
     "src": "{1"
    },
-   "expect": "throw:ExpectedColon@1-2"
+   "expect": "throw:ExpectedColon@2-2"
   },
   {
    "name": "parse \"{\\\"k\\\"\"",
@@ -1399,7 +1399,7 @@
     "k": "parse",
     "src": "{\"k\""
    },
-   "expect": "throw:ExpectedColon@1-4"
+   "expect": "throw:ExpectedColon@4-4"
   },
   {
    "name": "parse \"{1: 2, 1: 3}\"",
@@ -1479,7 +1479,7 @@
     "k": "parse",
     "src": "{1: 2"
    },
-   "expect": "throw:UnmatchedBraces@4-5"
+   "expect": "throw:UnmatchedBraces@5-5"
   },
   {
    "name": "parse \"1: 2}\"",
@@ -1695,7 +1695,7 @@
     "k": "parse",
     "src": "-Infinityzz"
    },
-   "expect": "throw:ExtraData@9-10"
+   "expect": "throw:ExtraData@9-11"
   },
   {
    "name": "parse \"nullx\"",
@@ -2391,7 +2391,7 @@
     "k": "partial",
     "src": "h'zz'"
    },
-   "expect": "throw:InvalidHexString@0-2"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "partial \"h'abc'\"",
@@ -2407,7 +2407,7 @@
     "k": "partial",
     "src": "h'de ad'"
    },
-   "expect": "throw:InvalidHexString@0-4"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "partial \"b64''\"",
@@ -2415,7 +2415,7 @@
     "k": "partial",
     "src": "b64''"
    },
-   "expect": "throw:InvalidBase64String@0-5"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "partial \"b64'A'\"",
@@ -2423,7 +2423,7 @@
     "k": "partial",
     "src": "b64'A'"
    },
-   "expect": "throw:InvalidBase64String@0-6"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "partial \"b64'QQ=='\"",
@@ -2495,7 +2495,7 @@
     "k": "partial",
     "src": "b64'!!!invalid!!!'"
    },
-   "expect": "throw:InvalidBase64String@0-4"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "partial \"b64'SGVsbG8gV29ybGQ'\"",
@@ -2775,7 +2775,7 @@
     "k": "partial",
     "src": "42(1"
    },
-   "expect": "throw:UnmatchedParentheses@3-4"
+   "expect": "throw:UnmatchedParentheses@4-4"
   },
   {
    "name": "partial \"42(1,2)\"",
@@ -3231,7 +3231,7 @@
     "k": "partial",
     "src": "{1"
    },
-   "expect": "throw:ExpectedColon@1-2"
+   "expect": "throw:ExpectedColon@2-2"
   },
   {
    "name": "partial \"{\\\"k\\\"\"",
@@ -3239,7 +3239,7 @@
     "k": "partial",
     "src": "{\"k\""
    },
-   "expect": "throw:ExpectedColon@1-4"
+   "expect": "throw:ExpectedColon@4-4"
   },
   {
    "name": "partial \"{1: 2, 1: 3}\"",
@@ -3319,7 +3319,7 @@
     "k": "partial",
     "src": "{1: 2"
    },
-   "expect": "throw:UnmatchedBraces@4-5"
+   "expect": "throw:UnmatchedBraces@5-5"
   },
   {
    "name": "partial \"1: 2}\"",
@@ -3970,7 +3970,7 @@
     "k": "parse",
     "src": "{443.519: ur:digest/lfadaowdvwfgme, h'69': [[h'084a61be' , 45],date(b64'')], [h'ea']: 1078547140481233876}"
    },
-   "expect": "throw:InvalidBase64String@68-73"
+   "expect": "throw:UnrecognizedToken@63-68"
   },
   {
    "name": "parse \"\\\"é🌈\\\"\"",
@@ -3994,7 +3994,7 @@
     "k": "parse",
     "src": "[{},'unit',{62: {9543069213935527668: true, 2253312781: 0e4, '': b64'DWc='}, b64'ig==': 2017-01-11T14:56:52Z}]"
    },
-   "expect": "throw:UnknownKnownValueName@5-9"
+   "expect": "throw:UnknownKnownValueName@4-10"
   },
   {
    "name": "parse \"'isA'\"",
@@ -4098,7 +4098,7 @@
     "k": "parse",
     "src": "b64''"
    },
-   "expect": "throw:InvalidBase64String@0-5"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"Infinity\"",
@@ -4130,7 +4130,7 @@
     "k": "parse",
     "src": "[digest({}),Unit]"
    },
-   "expect": "82d99c41a0d99c4000"
+   "expect": "throw:UnexpectedToken(Unit)@12-16"
   },
   {
    "name": "parse \"1983-01-19T19:53:14Z\"",
@@ -4146,7 +4146,7 @@
     "k": "parse",
     "src": "{seed(2093635688): 2175012494, [Unit]: nosuchtag('date')}"
    },
-   "expect": "throw:UnknownTagName@39-48"
+   "expect": "throw:UnexpectedToken(Unit)@32-36"
   },
   {
    "name": "parse \"[]\"",
@@ -4594,7 +4594,7 @@
     "k": "parse",
     "src": "b64''"
    },
-   "expect": "throw:InvalidBase64String@0-5"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"1976-01-06T12:00:00-02:00\"",
@@ -4666,7 +4666,7 @@
     "k": "parse",
     "src": "b64''"
    },
-   "expect": "throw:InvalidBase64String@0-5"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"h'4be7e877'\"",
@@ -4682,7 +4682,7 @@
     "k": "parse",
     "src": "b64''"
    },
-   "expect": "throw:InvalidBase64String@0-5"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"[ur:seed/oyhshsadmtioimcw]\"",
@@ -4834,7 +4834,7 @@
     "k": "parse",
     "src": "[{},1975-06-03T12:00:00+00:00,b64'']"
    },
-   "expect": "throw:InvalidBase64String@30-35"
+   "expect": "throw:UnrecognizedToken@29-30"
   },
   {
    "name": "parse \"{1986-02-14T12:00:00.772Z: '1', {{2029-06-04: b64'vw==', \\\"",
@@ -4842,7 +4842,7 @@
     "k": "parse",
     "src": "{1986-02-14T12:00:00.772Z: '1', {{2029-06-04: b64'vw==', \"\\n✓\": b64''}: \"\", h'd9': NaN}: 2022-07-27T12:00:00.032Z, {null: 3793235274001174375}: ''}"
    },
-   "expect": "throw:InvalidBase64String@64-69"
+   "expect": "throw:UnrecognizedToken@62-63"
   },
   {
    "name": "parse \"\\\"\\\\\\\"\\\"\"",
@@ -4898,7 +4898,7 @@
     "k": "parse",
     "src": "[\"🌈✓\\\"\",\" \",'nosuchvalue']"
    },
-   "expect": "throw:UnknownKnownValueName@14-25"
+   "expect": "throw:UnknownKnownValueName@13-26"
   },
   {
    "name": "parse \"null\"",
@@ -5194,7 +5194,7 @@
     "k": "parse",
     "src": "[\"é\", {1971-09-22: 5007396095539779634}, {b64'': {1991-10-23T03:19:02Z: date(b64'TJZ0'), {-9: 2242363237}: ''}}]"
    },
-   "expect": "throw:InvalidBase64String@42-47"
+   "expect": "throw:UnrecognizedToken@41-42"
   },
   {
    "name": "parse \"{{17: 707.716, 2452564680: b64'pQ=='}: {}, 'note': b64'', h",
@@ -5202,7 +5202,7 @@
     "k": "parse",
     "src": "{{17: 707.716, 2452564680: b64'pQ=='}: {}, 'note': b64'', h'7dcc1c': b64''}"
    },
-   "expect": "throw:InvalidBase64String@51-56"
+   "expect": "throw:UnrecognizedToken@49-50"
   },
   {
    "name": "parse \"2\"",
@@ -5330,7 +5330,7 @@
     "k": "parse",
     "src": "{[h'95']: 'isA', {\"\": b64''}: Unit, ur:seed/hsksiavypach: []}"
    },
-   "expect": "throw:InvalidBase64String@22-27"
+   "expect": "throw:UnrecognizedToken@20-21"
   },
   {
    "name": "parse \"'isA'\"",
@@ -5466,7 +5466,7 @@
     "k": "parse",
     "src": "b64''"
    },
-   "expect": "throw:InvalidBase64String@0-5"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"b64'Fpx4'\"",
@@ -5602,7 +5602,7 @@
     "k": "parse",
     "src": "{'': {21232(b64''): -4.34, h'2589e2': 46}, Unit: []}"
    },
-   "expect": "throw:InvalidBase64String@12-17"
+   "expect": "throw:UnrecognizedToken@6-12"
   },
   {
    "name": "parse \"2607680418\"",
@@ -5738,7 +5738,7 @@
     "k": "parse",
     "src": "[b64'']"
    },
-   "expect": "throw:InvalidBase64String@1-6"
+   "expect": "throw:UnrecognizedToken@0-1"
   },
   {
    "name": "parse \"1997-11-02T12:00:00+04:00\"",
@@ -5834,7 +5834,7 @@
     "k": "parse",
     "src": "b64''"
    },
-   "expect": "throw:InvalidBase64String@0-5"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"Unit\"",
@@ -6298,7 +6298,7 @@
     "k": "parse",
     "src": "b64''"
    },
-   "expect": "throw:InvalidBase64String@0-5"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"0\"",
@@ -6338,7 +6338,7 @@
     "k": "parse",
     "src": "['0' , Unit]"
    },
-   "expect": "82d99c4000d99c4000"
+   "expect": "throw:UnexpectedToken(Unit)@7-11"
   },
   {
    "name": "parse \"h'2e'\"",
@@ -6354,7 +6354,7 @@
     "k": "parse",
     "src": "{{42: 'date', {\"\\\"日本\": {}, 906857752: 586140606915088518, {}: 4130097355}: b64''}: b64'n+w=', {'1': 2011-05-14T01:28:15Z, [envelope(ur:unknown-type/oyhshsadmtioimcw),[]]: 9e2}: ur:date/oyhshsadmtioimcw}"
    },
-   "expect": "throw:InvalidBase64String@75-80"
+   "expect": "throw:UnrecognizedToken@73-74"
   },
   {
    "name": "parse \"h'f62211'\"",
@@ -6418,7 +6418,7 @@
     "k": "parse",
     "src": "b64''"
    },
-   "expect": "throw:InvalidBase64String@0-5"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"ur:date/hsksiavypach\"",
@@ -6514,7 +6514,7 @@
     "k": "parse",
     "src": "b64''"
    },
-   "expect": "throw:InvalidBase64String@0-5"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"'42'\"",
@@ -6650,7 +6650,7 @@
     "k": "parse",
     "src": "b64''"
    },
-   "expect": "throw:InvalidBase64String@0-5"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"{5e0: {h'e4': h'925c26c5'}}\"",
@@ -7066,7 +7066,7 @@
     "k": "parse",
     "src": "b64''"
    },
-   "expect": "throw:InvalidBase64String@0-5"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"b64'QQ=='\"",
@@ -7210,7 +7210,7 @@
     "k": "parse",
     "src": "b64'='"
    },
-   "expect": "throw:InvalidBase64String@0-6"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"b64'=='\"",
@@ -7290,7 +7290,7 @@
     "k": "parse",
     "src": "b64'QQ-='"
    },
-   "expect": "throw:InvalidBase64String@0-6"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"b64'QQ_='\"",
@@ -7298,7 +7298,7 @@
     "k": "parse",
     "src": "b64'QQ_='"
    },
-   "expect": "throw:InvalidBase64String@0-6"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"b64'QQ==\\n'\"",
@@ -7306,7 +7306,7 @@
     "k": "parse",
     "src": "b64'QQ==\n'"
    },
-   "expect": "throw:InvalidBase64String@0-8"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"b64'QQ =='\"",
@@ -7314,7 +7314,7 @@
     "k": "parse",
     "src": "b64'QQ =='"
    },
-   "expect": "throw:InvalidBase64String@0-6"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"b64'A'\"",
@@ -7322,7 +7322,7 @@
     "k": "parse",
     "src": "b64'A'"
    },
-   "expect": "throw:InvalidBase64String@0-6"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"b64''\"",
@@ -7330,7 +7330,7 @@
     "k": "parse",
     "src": "b64''"
    },
-   "expect": "throw:InvalidBase64String@0-5"
+   "expect": "throw:UnrecognizedToken@0-0"
   },
   {
    "name": "parse \"0000-01-01\"",
@@ -8714,7 +8714,7 @@
     "k": "partial",
     "src": "1 /unterminated"
    },
-   "expect": "01@2"
+   "expect": "01@1"
   },
   {
    "name": "partial \"1 # c\"",
@@ -8762,7 +8762,7 @@
     "k": "partial",
     "src": "1 /"
    },
-   "expect": "01@2"
+   "expect": "01@1"
   },
   {
    "name": "partial \"1 #\"",
@@ -8786,7 +8786,7 @@
     "k": "partial",
     "src": "1\n/"
    },
-   "expect": "01@2"
+   "expect": "01@1"
   },
   {
    "name": "partial \"1 /a/ /b\"",
@@ -8794,7 +8794,7 @@
     "k": "partial",
     "src": "1 /a/ /b"
    },
-   "expect": "01@6"
+   "expect": "01@1"
   },
   {
    "name": "partial \"1 /a/\"",
@@ -8834,7 +8834,7 @@
     "k": "parse",
     "src": "٢٠٢٣-01-01"
    },
-   "expect": "throw:UnrecognizedToken@0-0"
+   "expect": "throw:InvalidDateString@0-10"
   },
   {
    "name": "parse \"1١\"",
@@ -8858,7 +8858,7 @@
     "k": "parse",
     "src": "2023-01-0١"
    },
-   "expect": "throw:ExtraData@4-6"
+   "expect": "throw:InvalidDateString@0-10"
   },
   {
    "name": "parse \"1 1\"",
@@ -8907,6 +8907,1286 @@
     "src": "1\u000b"
    },
    "expect": "throw:ExtraData@1-2"
+  },
+  {
+   "name": "parse \"[h'abc']\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[h'abc']"
+   },
+   "expect": "throw:UnexpectedToken(ByteStringHex)@1-7"
+  },
+  {
+   "name": "parse \"[1,2,h'abc']\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[1,2,h'abc']"
+   },
+   "expect": "throw:UnexpectedToken(ByteStringHex)@5-11"
+  },
+  {
+   "name": "parse \"[b64'QR==']\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[b64'QR==']"
+   },
+   "expect": "throw:UnexpectedToken(ByteStringBase64)@1-10"
+  },
+  {
+   "name": "parse \"[2023-13-45]\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[2023-13-45]"
+   },
+   "expect": "throw:UnexpectedToken(DateLiteral)@1-11"
+  },
+  {
+   "name": "parse \"[1, 2023-13-45]\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[1, 2023-13-45]"
+   },
+   "expect": "throw:UnexpectedToken(DateLiteral)@4-14"
+  },
+  {
+   "name": "parse \"[99999999999999999999999(1)]\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[99999999999999999999999(1)]"
+   },
+   "expect": "throw:UnexpectedToken(TagValue)@1-25"
+  },
+  {
+   "name": "parse \"['99999999999999999999999']\"",
+   "recipe": {
+    "k": "parse",
+    "src": "['99999999999999999999999']"
+   },
+   "expect": "throw:UnexpectedToken(KnownValueNumber)@1-26"
+  },
+  {
+   "name": "parse \"[ur:foo/aaaaaaaa]\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[ur:foo/aaaaaaaa]"
+   },
+   "expect": "throw:UnexpectedToken(UR)@1-16"
+  },
+  {
+   "name": "parse \"[1 h'abc']\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[1 h'abc']"
+   },
+   "expect": "throw:ExpectedComma@3-9"
+  },
+  {
+   "name": "parse \"{1: 2 h'abc'}\"",
+   "recipe": {
+    "k": "parse",
+    "src": "{1: 2 h'abc'}"
+   },
+   "expect": "throw:ExpectedComma@6-12"
+  },
+  {
+   "name": "parse \"1(1 h'abc')\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1(1 h'abc')"
+   },
+   "expect": "throw:UnmatchedParentheses@4-10"
+  },
+  {
+   "name": "parse \"date(1 h'abc')\"",
+   "recipe": {
+    "k": "parse",
+    "src": "date(1 h'abc')"
+   },
+   "expect": "throw:UnmatchedParentheses@7-13"
+  },
+  {
+   "name": "parse \"{1 h'abc'}\"",
+   "recipe": {
+    "k": "parse",
+    "src": "{1 h'abc'}"
+   },
+   "expect": "throw:ExpectedColon@3-9"
+  },
+  {
+   "name": "parse \"{h'abc': 1}\"",
+   "recipe": {
+    "k": "parse",
+    "src": "{h'abc': 1}"
+   },
+   "expect": "throw:InvalidHexString@1-7"
+  },
+  {
+   "name": "parse \"{1: h'abc'}\"",
+   "recipe": {
+    "k": "parse",
+    "src": "{1: h'abc'}"
+   },
+   "expect": "throw:InvalidHexString@4-10"
+  },
+  {
+   "name": "parse \"1(h'abc')\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1(h'abc')"
+   },
+   "expect": "throw:InvalidHexString@2-8"
+  },
+  {
+   "name": "parse \"h'abc'\"",
+   "recipe": {
+    "k": "parse",
+    "src": "h'abc'"
+   },
+   "expect": "throw:InvalidHexString@0-6"
+  },
+  {
+   "name": "parse \"[Unit]\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[Unit]"
+   },
+   "expect": "throw:UnexpectedToken(Unit)@1-5"
+  },
+  {
+   "name": "parse \"[Unit 1]\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[Unit 1]"
+   },
+   "expect": "throw:UnexpectedToken(Unit)@1-5"
+  },
+  {
+   "name": "parse \"[1 Unit]\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[1 Unit]"
+   },
+   "expect": "throw:ExpectedComma@3-7"
+  },
+  {
+   "name": "parse \"[1, Unit, 2]\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[1, Unit, 2]"
+   },
+   "expect": "throw:UnexpectedToken(Unit)@4-8"
+  },
+  {
+   "name": "parse \"[[Unit]]\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[[Unit]]"
+   },
+   "expect": "throw:UnexpectedToken(Unit)@2-6"
+  },
+  {
+   "name": "parse \"{[Unit]: 1}\"",
+   "recipe": {
+    "k": "parse",
+    "src": "{[Unit]: 1}"
+   },
+   "expect": "throw:UnexpectedToken(Unit)@2-6"
+  },
+  {
+   "name": "parse \"1([Unit])\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1([Unit])"
+   },
+   "expect": "throw:UnexpectedToken(Unit)@3-7"
+  },
+  {
+   "name": "parse \"{Unit: 1}\"",
+   "recipe": {
+    "k": "parse",
+    "src": "{Unit: 1}"
+   },
+   "expect": "a1d99c400001"
+  },
+  {
+   "name": "parse \"{1: Unit}\"",
+   "recipe": {
+    "k": "parse",
+    "src": "{1: Unit}"
+   },
+   "expect": "a101d99c4000"
+  },
+  {
+   "name": "parse \"1(Unit)\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1(Unit)"
+   },
+   "expect": "c1d99c4000"
+  },
+  {
+   "name": "parse \"['zzz']\"",
+   "recipe": {
+    "k": "parse",
+    "src": "['zzz']"
+   },
+   "expect": "throw:UnknownKnownValueName@1-6"
+  },
+  {
+   "name": "parse \"[1, 'zzz']\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[1, 'zzz']"
+   },
+   "expect": "throw:UnknownKnownValueName@4-9"
+  },
+  {
+   "name": "parse \"[1 'zzz']\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[1 'zzz']"
+   },
+   "expect": "throw:ExpectedComma@3-8"
+  },
+  {
+   "name": "parse \"{'zzz': 1}\"",
+   "recipe": {
+    "k": "parse",
+    "src": "{'zzz': 1}"
+   },
+   "expect": "throw:UnknownKnownValueName@2-5"
+  },
+  {
+   "name": "parse \"1('zzz')\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1('zzz')"
+   },
+   "expect": "throw:UnknownKnownValueName@3-6"
+  },
+  {
+   "name": "parse \"{\"",
+   "recipe": {
+    "k": "parse",
+    "src": "{"
+   },
+   "expect": "throw:UnmatchedBraces@1-1"
+  },
+  {
+   "name": "parse \"{1 \"",
+   "recipe": {
+    "k": "parse",
+    "src": "{1 "
+   },
+   "expect": "throw:ExpectedColon@3-3"
+  },
+  {
+   "name": "parse \"{1: 2 \"",
+   "recipe": {
+    "k": "parse",
+    "src": "{1: 2 "
+   },
+   "expect": "throw:UnmatchedBraces@6-6"
+  },
+  {
+   "name": "parse \"{1: 2 /c/\"",
+   "recipe": {
+    "k": "parse",
+    "src": "{1: 2 /c/"
+   },
+   "expect": "throw:UnmatchedBraces@9-9"
+  },
+  {
+   "name": "parse \"{1: 2 # c\"",
+   "recipe": {
+    "k": "parse",
+    "src": "{1: 2 # c"
+   },
+   "expect": "throw:UnmatchedBraces@9-9"
+  },
+  {
+   "name": "parse \"42(1 \"",
+   "recipe": {
+    "k": "parse",
+    "src": "42(1 "
+   },
+   "expect": "throw:UnmatchedParentheses@5-5"
+  },
+  {
+   "name": "parse \"1 truex\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 truex"
+   },
+   "expect": "throw:ExtraData@2-7"
+  },
+  {
+   "name": "parse \"{1 truex}\"",
+   "recipe": {
+    "k": "parse",
+    "src": "{1 truex}"
+   },
+   "expect": "throw:ExpectedColon@3-8"
+  },
+  {
+   "name": "parse \"[1 truex]\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[1 truex]"
+   },
+   "expect": "throw:UnrecognizedToken@1-2"
+  },
+  {
+   "name": "parse \"{1: 2 truex}\"",
+   "recipe": {
+    "k": "parse",
+    "src": "{1: 2 truex}"
+   },
+   "expect": "throw:UnrecognizedToken@4-5"
+  },
+  {
+   "name": "parse \"1 tru\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 tru"
+   },
+   "expect": "throw:ExtraData@2-5"
+  },
+  {
+   "name": "parse \"1 _a-b9\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 _a-b9"
+   },
+   "expect": "throw:ExtraData@2-7"
+  },
+  {
+   "name": "parse \"1 nullnull\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 nullnull"
+   },
+   "expect": "throw:ExtraData@2-10"
+  },
+  {
+   "name": "parse \"1 /x\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 /x"
+   },
+   "expect": "throw:ExtraData@1-4"
+  },
+  {
+   "name": "parse \"1 \\t/\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 \t/"
+   },
+   "expect": "throw:ExtraData@1-4"
+  },
+  {
+   "name": "parse \"1 /a/ x\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 /a/ x"
+   },
+   "expect": "throw:ExtraData@6-7"
+  },
+  {
+   "name": "parse \"1 /a/ /b\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 /a/ /b"
+   },
+   "expect": "throw:ExtraData@1-8"
+  },
+  {
+   "name": "parse \"{1 /x}\"",
+   "recipe": {
+    "k": "parse",
+    "src": "{1 /x}"
+   },
+   "expect": "throw:ExpectedColon@2-6"
+  },
+  {
+   "name": "parse \"1/x\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1/x"
+   },
+   "expect": "throw:ExtraData@1-3"
+  },
+  {
+   "name": "parse \"/x 1\"",
+   "recipe": {
+    "k": "parse",
+    "src": "/x 1"
+   },
+   "expect": "throw:UnrecognizedToken@0-0"
+  },
+  {
+   "name": "parse \"h'zz'\"",
+   "recipe": {
+    "k": "parse",
+    "src": "h'zz'"
+   },
+   "expect": "throw:UnrecognizedToken@0-0"
+  },
+  {
+   "name": "parse \"h'\"",
+   "recipe": {
+    "k": "parse",
+    "src": "h'"
+   },
+   "expect": "throw:UnrecognizedToken@0-0"
+  },
+  {
+   "name": "parse \"1 h'zz'\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 h'zz'"
+   },
+   "expect": "throw:ExtraData@2-3"
+  },
+  {
+   "name": "parse \"1 h'\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 h'"
+   },
+   "expect": "throw:ExtraData@2-3"
+  },
+  {
+   "name": "parse \"[1, h'zz']\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[1, h'zz']"
+   },
+   "expect": "throw:UnrecognizedToken@2-3"
+  },
+  {
+   "name": "parse \"[b64'']\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[b64'']"
+   },
+   "expect": "throw:UnrecognizedToken@0-1"
+  },
+  {
+   "name": "parse \"1 b64\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 b64"
+   },
+   "expect": "throw:ExtraData@2-5"
+  },
+  {
+   "name": "parse \"1 b64'\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 b64'"
+   },
+   "expect": "throw:ExtraData@2-5"
+  },
+  {
+   "name": "parse \"1 b64'A'\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 b64'A'"
+   },
+   "expect": "throw:ExtraData@2-5"
+  },
+  {
+   "name": "parse \"1 b64''\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 b64''"
+   },
+   "expect": "throw:ExtraData@2-5"
+  },
+  {
+   "name": "parse \"1(1 h'zz')\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1(1 h'zz')"
+   },
+   "expect": "throw:UnrecognizedToken@2-3"
+  },
+  {
+   "name": "parse \"1 'a \"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 'a "
+   },
+   "expect": "throw:ExtraData@2-3"
+  },
+  {
+   "name": "parse \"1 'a\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 'a"
+   },
+   "expect": "throw:ExtraData@2-3"
+  },
+  {
+   "name": "parse \"1 '1a'\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 '1a'"
+   },
+   "expect": "throw:ExtraData@2-3"
+  },
+  {
+   "name": "parse \"1 \\\"a\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 \"a"
+   },
+   "expect": "throw:ExtraData@2-3"
+  },
+  {
+   "name": "parse \"1 \\\"a\\\\\\\"\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 \"a\\\""
+   },
+   "expect": "throw:ExtraData@2-3"
+  },
+  {
+   "name": "parse \"1 \\\"a\\\\q\\\"\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 \"a\\q\""
+   },
+   "expect": "throw:ExtraData@2-3"
+  },
+  {
+   "name": "parse \"1 \\\"a\\\\u12\\\"\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 \"a\\u12\""
+   },
+   "expect": "throw:ExtraData@2-3"
+  },
+  {
+   "name": "parse \"1 ur\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 ur"
+   },
+   "expect": "throw:ExtraData@2-4"
+  },
+  {
+   "name": "parse \"1 ur:\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 ur:"
+   },
+   "expect": "throw:ExtraData@2-4"
+  },
+  {
+   "name": "parse \"1 ur:a\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 ur:a"
+   },
+   "expect": "throw:ExtraData@2-4"
+  },
+  {
+   "name": "parse \"1 ur:a/\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 ur:a/"
+   },
+   "expect": "throw:ExtraData@2-4"
+  },
+  {
+   "name": "parse \"1 ur:a/abc\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 ur:a/abc"
+   },
+   "expect": "throw:ExtraData@2-4"
+  },
+  {
+   "name": "parse \"1 é\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 é"
+   },
+   "expect": "throw:ExtraData@2-3"
+  },
+  {
+   "name": "parse \"1 🌈\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 🌈"
+   },
+   "expect": "throw:ExtraData@2-4"
+  },
+  {
+   "name": "parse \"[2023-01-0١]\"",
+   "recipe": {
+    "k": "parse",
+    "src": "[2023-01-0١]"
+   },
+   "expect": "throw:UnexpectedToken(DateLiteral)@1-11"
+  },
+  {
+   "name": "parse \"{2023-01-0١: 1}\"",
+   "recipe": {
+    "k": "parse",
+    "src": "{2023-01-0١: 1}"
+   },
+   "expect": "throw:InvalidDateString@1-11"
+  },
+  {
+   "name": "parse \"1 2023-01-0١\"",
+   "recipe": {
+    "k": "parse",
+    "src": "1 2023-01-0١"
+   },
+   "expect": "throw:ExtraData@2-12"
+  },
+  {
+   "name": "partial \"[h'abc']\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[h'abc']"
+   },
+   "expect": "throw:UnexpectedToken(ByteStringHex)@1-7"
+  },
+  {
+   "name": "partial \"[1,2,h'abc']\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[1,2,h'abc']"
+   },
+   "expect": "throw:UnexpectedToken(ByteStringHex)@5-11"
+  },
+  {
+   "name": "partial \"[b64'QR==']\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[b64'QR==']"
+   },
+   "expect": "throw:UnexpectedToken(ByteStringBase64)@1-10"
+  },
+  {
+   "name": "partial \"[2023-13-45]\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[2023-13-45]"
+   },
+   "expect": "throw:UnexpectedToken(DateLiteral)@1-11"
+  },
+  {
+   "name": "partial \"[1, 2023-13-45]\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[1, 2023-13-45]"
+   },
+   "expect": "throw:UnexpectedToken(DateLiteral)@4-14"
+  },
+  {
+   "name": "partial \"[99999999999999999999999(1)]\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[99999999999999999999999(1)]"
+   },
+   "expect": "throw:UnexpectedToken(TagValue)@1-25"
+  },
+  {
+   "name": "partial \"['99999999999999999999999']\"",
+   "recipe": {
+    "k": "partial",
+    "src": "['99999999999999999999999']"
+   },
+   "expect": "throw:UnexpectedToken(KnownValueNumber)@1-26"
+  },
+  {
+   "name": "partial \"[ur:foo/aaaaaaaa]\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[ur:foo/aaaaaaaa]"
+   },
+   "expect": "throw:UnexpectedToken(UR)@1-16"
+  },
+  {
+   "name": "partial \"[1 h'abc']\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[1 h'abc']"
+   },
+   "expect": "throw:ExpectedComma@3-9"
+  },
+  {
+   "name": "partial \"{1: 2 h'abc'}\"",
+   "recipe": {
+    "k": "partial",
+    "src": "{1: 2 h'abc'}"
+   },
+   "expect": "throw:ExpectedComma@6-12"
+  },
+  {
+   "name": "partial \"1(1 h'abc')\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1(1 h'abc')"
+   },
+   "expect": "throw:UnmatchedParentheses@4-10"
+  },
+  {
+   "name": "partial \"date(1 h'abc')\"",
+   "recipe": {
+    "k": "partial",
+    "src": "date(1 h'abc')"
+   },
+   "expect": "throw:UnmatchedParentheses@7-13"
+  },
+  {
+   "name": "partial \"{1 h'abc'}\"",
+   "recipe": {
+    "k": "partial",
+    "src": "{1 h'abc'}"
+   },
+   "expect": "throw:ExpectedColon@3-9"
+  },
+  {
+   "name": "partial \"{h'abc': 1}\"",
+   "recipe": {
+    "k": "partial",
+    "src": "{h'abc': 1}"
+   },
+   "expect": "throw:InvalidHexString@1-7"
+  },
+  {
+   "name": "partial \"{1: h'abc'}\"",
+   "recipe": {
+    "k": "partial",
+    "src": "{1: h'abc'}"
+   },
+   "expect": "throw:InvalidHexString@4-10"
+  },
+  {
+   "name": "partial \"1(h'abc')\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1(h'abc')"
+   },
+   "expect": "throw:InvalidHexString@2-8"
+  },
+  {
+   "name": "partial \"h'abc'\"",
+   "recipe": {
+    "k": "partial",
+    "src": "h'abc'"
+   },
+   "expect": "throw:InvalidHexString@0-6"
+  },
+  {
+   "name": "partial \"[Unit]\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[Unit]"
+   },
+   "expect": "throw:UnexpectedToken(Unit)@1-5"
+  },
+  {
+   "name": "partial \"[Unit 1]\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[Unit 1]"
+   },
+   "expect": "throw:UnexpectedToken(Unit)@1-5"
+  },
+  {
+   "name": "partial \"[1 Unit]\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[1 Unit]"
+   },
+   "expect": "throw:ExpectedComma@3-7"
+  },
+  {
+   "name": "partial \"[1, Unit, 2]\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[1, Unit, 2]"
+   },
+   "expect": "throw:UnexpectedToken(Unit)@4-8"
+  },
+  {
+   "name": "partial \"[[Unit]]\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[[Unit]]"
+   },
+   "expect": "throw:UnexpectedToken(Unit)@2-6"
+  },
+  {
+   "name": "partial \"{[Unit]: 1}\"",
+   "recipe": {
+    "k": "partial",
+    "src": "{[Unit]: 1}"
+   },
+   "expect": "throw:UnexpectedToken(Unit)@2-6"
+  },
+  {
+   "name": "partial \"1([Unit])\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1([Unit])"
+   },
+   "expect": "throw:UnexpectedToken(Unit)@3-7"
+  },
+  {
+   "name": "partial \"{Unit: 1}\"",
+   "recipe": {
+    "k": "partial",
+    "src": "{Unit: 1}"
+   },
+   "expect": "a1d99c400001@9"
+  },
+  {
+   "name": "partial \"{1: Unit}\"",
+   "recipe": {
+    "k": "partial",
+    "src": "{1: Unit}"
+   },
+   "expect": "a101d99c4000@9"
+  },
+  {
+   "name": "partial \"1(Unit)\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1(Unit)"
+   },
+   "expect": "c1d99c4000@7"
+  },
+  {
+   "name": "partial \"['zzz']\"",
+   "recipe": {
+    "k": "partial",
+    "src": "['zzz']"
+   },
+   "expect": "throw:UnknownKnownValueName@1-6"
+  },
+  {
+   "name": "partial \"[1, 'zzz']\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[1, 'zzz']"
+   },
+   "expect": "throw:UnknownKnownValueName@4-9"
+  },
+  {
+   "name": "partial \"[1 'zzz']\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[1 'zzz']"
+   },
+   "expect": "throw:ExpectedComma@3-8"
+  },
+  {
+   "name": "partial \"{'zzz': 1}\"",
+   "recipe": {
+    "k": "partial",
+    "src": "{'zzz': 1}"
+   },
+   "expect": "throw:UnknownKnownValueName@2-5"
+  },
+  {
+   "name": "partial \"1('zzz')\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1('zzz')"
+   },
+   "expect": "throw:UnknownKnownValueName@3-6"
+  },
+  {
+   "name": "partial \"{\"",
+   "recipe": {
+    "k": "partial",
+    "src": "{"
+   },
+   "expect": "throw:UnmatchedBraces@1-1"
+  },
+  {
+   "name": "partial \"{1 \"",
+   "recipe": {
+    "k": "partial",
+    "src": "{1 "
+   },
+   "expect": "throw:ExpectedColon@3-3"
+  },
+  {
+   "name": "partial \"{1: 2 \"",
+   "recipe": {
+    "k": "partial",
+    "src": "{1: 2 "
+   },
+   "expect": "throw:UnmatchedBraces@6-6"
+  },
+  {
+   "name": "partial \"{1: 2 /c/\"",
+   "recipe": {
+    "k": "partial",
+    "src": "{1: 2 /c/"
+   },
+   "expect": "throw:UnmatchedBraces@9-9"
+  },
+  {
+   "name": "partial \"{1: 2 # c\"",
+   "recipe": {
+    "k": "partial",
+    "src": "{1: 2 # c"
+   },
+   "expect": "throw:UnmatchedBraces@9-9"
+  },
+  {
+   "name": "partial \"42(1 \"",
+   "recipe": {
+    "k": "partial",
+    "src": "42(1 "
+   },
+   "expect": "throw:UnmatchedParentheses@5-5"
+  },
+  {
+   "name": "partial \"1 truex\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 truex"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"{1 truex}\"",
+   "recipe": {
+    "k": "partial",
+    "src": "{1 truex}"
+   },
+   "expect": "throw:ExpectedColon@3-8"
+  },
+  {
+   "name": "partial \"[1 truex]\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[1 truex]"
+   },
+   "expect": "throw:UnrecognizedToken@1-2"
+  },
+  {
+   "name": "partial \"{1: 2 truex}\"",
+   "recipe": {
+    "k": "partial",
+    "src": "{1: 2 truex}"
+   },
+   "expect": "throw:UnrecognizedToken@4-5"
+  },
+  {
+   "name": "partial \"1 tru\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 tru"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 _a-b9\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 _a-b9"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 nullnull\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 nullnull"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 /x\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 /x"
+   },
+   "expect": "01@1"
+  },
+  {
+   "name": "partial \"1 \\t/\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 \t/"
+   },
+   "expect": "01@1"
+  },
+  {
+   "name": "partial \"1 /a/ x\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 /a/ x"
+   },
+   "expect": "01@6"
+  },
+  {
+   "name": "partial \"1 /a/ /b\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 /a/ /b"
+   },
+   "expect": "01@1"
+  },
+  {
+   "name": "partial \"{1 /x}\"",
+   "recipe": {
+    "k": "partial",
+    "src": "{1 /x}"
+   },
+   "expect": "throw:ExpectedColon@2-6"
+  },
+  {
+   "name": "partial \"1/x\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1/x"
+   },
+   "expect": "01@1"
+  },
+  {
+   "name": "partial \"/x 1\"",
+   "recipe": {
+    "k": "partial",
+    "src": "/x 1"
+   },
+   "expect": "throw:UnrecognizedToken@0-0"
+  },
+  {
+   "name": "partial \"h'zz'\"",
+   "recipe": {
+    "k": "partial",
+    "src": "h'zz'"
+   },
+   "expect": "throw:UnrecognizedToken@0-0"
+  },
+  {
+   "name": "partial \"h'\"",
+   "recipe": {
+    "k": "partial",
+    "src": "h'"
+   },
+   "expect": "throw:UnrecognizedToken@0-0"
+  },
+  {
+   "name": "partial \"1 h'zz'\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 h'zz'"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 h'\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 h'"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"[1, h'zz']\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[1, h'zz']"
+   },
+   "expect": "throw:UnrecognizedToken@2-3"
+  },
+  {
+   "name": "partial \"[b64'']\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[b64'']"
+   },
+   "expect": "throw:UnrecognizedToken@0-1"
+  },
+  {
+   "name": "partial \"1 b64\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 b64"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 b64'\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 b64'"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 b64'A'\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 b64'A'"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 b64''\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 b64''"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1(1 h'zz')\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1(1 h'zz')"
+   },
+   "expect": "throw:UnrecognizedToken@2-3"
+  },
+  {
+   "name": "partial \"1 'a \"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 'a "
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 'a\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 'a"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 '1a'\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 '1a'"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 \\\"a\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 \"a"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 \\\"a\\\\\\\"\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 \"a\\\""
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 \\\"a\\\\q\\\"\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 \"a\\q\""
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 \\\"a\\\\u12\\\"\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 \"a\\u12\""
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 ur\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 ur"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 ur:\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 ur:"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 ur:a\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 ur:a"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 ur:a/\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 ur:a/"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 ur:a/abc\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 ur:a/abc"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 é\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 é"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"1 🌈\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 🌈"
+   },
+   "expect": "01@2"
+  },
+  {
+   "name": "partial \"[2023-01-0١]\"",
+   "recipe": {
+    "k": "partial",
+    "src": "[2023-01-0١]"
+   },
+   "expect": "throw:UnexpectedToken(DateLiteral)@1-11"
+  },
+  {
+   "name": "partial \"{2023-01-0١: 1}\"",
+   "recipe": {
+    "k": "partial",
+    "src": "{2023-01-0١: 1}"
+   },
+   "expect": "throw:InvalidDateString@1-11"
+  },
+  {
+   "name": "partial \"1 2023-01-0١\"",
+   "recipe": {
+    "k": "partial",
+    "src": "1 2023-01-0١"
+   },
+   "expect": "01@2"
   },
   {
    "name": "parse \"[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[",
@@ -9029,18 +10309,18 @@
    "expect": "throw:TypeError"
   },
   {
-   "name": "domain prefix-src-number",
+   "name": "domain partial-src-number",
    "recipe": {
     "k": "domain",
-    "s": "prefix-src-number"
+    "s": "partial-src-number"
    },
    "expect": "throw:TypeError"
   },
   {
-   "name": "domain try-prefix-src-undefined",
+   "name": "domain try-partial-src-undefined",
    "recipe": {
     "k": "domain",
-    "s": "try-prefix-src-undefined"
+    "s": "try-partial-src-undefined"
    },
    "expect": "throw:TypeError"
   },

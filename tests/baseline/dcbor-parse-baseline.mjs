@@ -2901,7 +2901,6 @@ const delegating$5 = (op) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Tag registry and management system.
@@ -3073,7 +3072,6 @@ const getGlobalTagsStore$8 = () => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Hex dump utilities for CBOR data.
@@ -3117,7 +3115,6 @@ const hexOpt$5 = (cbor, opts = {}) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Enhanced diagnostic formatting for CBOR values.
@@ -3187,7 +3184,6 @@ function diagnostic$8(cbor) {
 const isFloat$1$5 = (simple) => simple.type === "Float";
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * dCBOR decoding — delegates to `@blockchaincommons/dcbor`, the canonical
@@ -3201,7 +3197,6 @@ function decodeCbor$8(data) {
 }
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Convenience utilities for working with CBOR values.
@@ -3238,7 +3233,6 @@ const extractCbor$8 = (cbor) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Map Support in dCBOR
@@ -3566,7 +3560,6 @@ function walkTagged$5(cbor, level, parentState, visitor) {
 }
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 */
 const MajorType$8 = {
@@ -4006,7 +3999,6 @@ attachMethods$8({
 });
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Tagged CBOR encoding support.
@@ -4053,7 +4045,6 @@ const createTaggedCbor$1 = (encodable) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Tagged CBOR decoding support.
@@ -4099,7 +4090,6 @@ const extractTaggedContent$1 = (cbor) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Date/time support for CBOR with tag(1) encoding.
@@ -6860,7 +6850,6 @@ const delegating$3 = (op) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Tag registry and management system.
@@ -7032,7 +7021,6 @@ const getGlobalTagsStore$5 = () => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Hex dump utilities for CBOR data.
@@ -7076,7 +7064,6 @@ const hexOpt$3 = (cbor, opts = {}) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Enhanced diagnostic formatting for CBOR values.
@@ -7146,7 +7133,6 @@ function diagnostic$5(cbor) {
 const isFloat$1$3 = (simple) => simple.type === "Float";
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * dCBOR decoding — delegates to `@blockchaincommons/dcbor`, the canonical
@@ -7160,7 +7146,6 @@ function decodeCbor$5(data) {
 }
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Convenience utilities for working with CBOR values.
@@ -7197,7 +7182,6 @@ const extractCbor$5 = (cbor) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Map Support in dCBOR
@@ -7525,7 +7509,6 @@ function walkTagged$3(cbor, level, parentState, visitor) {
 }
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 */
 const MajorType$5 = {
@@ -12324,7 +12307,6 @@ const delegating$2 = (op) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Tag registry and management system.
@@ -12496,7 +12478,6 @@ const getGlobalTagsStore$3 = () => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Hex dump utilities for CBOR data.
@@ -12540,7 +12521,6 @@ const hexOpt$2 = (cbor, opts = {}) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Enhanced diagnostic formatting for CBOR values.
@@ -12610,7 +12590,6 @@ function diagnostic$3(cbor) {
 const isFloat$1$2 = (simple) => simple.type === "Float";
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * dCBOR decoding — delegates to `@blockchaincommons/dcbor`, the canonical
@@ -12624,7 +12603,6 @@ function decodeCbor$3(data) {
 }
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Convenience utilities for working with CBOR values.
@@ -12682,7 +12660,6 @@ const expectBytes = (cbor) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Map Support in dCBOR
@@ -13010,7 +12987,6 @@ function walkTagged$2(cbor, level, parentState, visitor) {
 }
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 */
 const MajorType$3 = {
@@ -13453,7 +13429,6 @@ attachMethods$3({
 });
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Tagged CBOR encoding support.
@@ -13500,7 +13475,6 @@ const createTaggedCbor = (encodable) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Tagged CBOR decoding support.
@@ -15928,7 +15902,6 @@ const delegating$1 = (op) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Tag registry and management system.
@@ -16100,7 +16073,6 @@ const getGlobalTagsStore$2 = () => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Hex dump utilities for CBOR data.
@@ -16144,7 +16116,6 @@ const hexOpt$1 = (cbor, opts = {}) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Enhanced diagnostic formatting for CBOR values.
@@ -16214,7 +16185,6 @@ function diagnostic$2(cbor) {
 const isFloat$1$1 = (simple) => simple.type === "Float";
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * dCBOR decoding — delegates to `@blockchaincommons/dcbor`, the canonical
@@ -16228,7 +16198,6 @@ function decodeCbor$2(data) {
 }
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Convenience utilities for working with CBOR values.
@@ -16265,7 +16234,6 @@ const extractCbor$2 = (cbor) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Map Support in dCBOR
@@ -16593,7 +16561,6 @@ function walkTagged$1(cbor, level, parentState, visitor) {
 }
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 */
 const MajorType$2 = {
@@ -17035,7 +17002,6 @@ const KNOWN_VALUE = createTag(4e4, "known-value");
 const DIGEST = createTag(40001, "digest");
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Utility functions for byte array conversions and comparisons.
@@ -19440,7 +19406,6 @@ const delegating$4 = (op) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Tag registry and management system.
@@ -19612,7 +19577,6 @@ const getGlobalTagsStore$7 = () => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Hex dump utilities for CBOR data.
@@ -19656,7 +19620,6 @@ const hexOpt$4 = (cbor, opts = {}) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Enhanced diagnostic formatting for CBOR values.
@@ -19726,7 +19689,6 @@ function diagnostic$7(cbor) {
 const isFloat$1$4 = (simple) => simple.type === "Float";
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * dCBOR decoding — delegates to `@blockchaincommons/dcbor`, the canonical
@@ -19740,7 +19702,6 @@ function decodeCbor$7(data) {
 }
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Convenience utilities for working with CBOR values.
@@ -19777,7 +19738,6 @@ const extractCbor$7 = (cbor) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Map Support in dCBOR
@@ -20105,7 +20065,6 @@ function walkTagged$4(cbor, level, parentState, visitor) {
 }
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 */
 const MajorType$7 = {
@@ -20545,7 +20504,6 @@ attachMethods$7({
 });
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Error type for UR encoding/decoding operations.
@@ -20644,7 +20602,6 @@ var URDecodeError$1 = class extends URError$1 {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 */
 /**
@@ -21361,7 +21318,6 @@ function decodeBytewords$1(encoded, style = "minimal") {
 }
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 */
 /**
@@ -21703,7 +21659,6 @@ for (let i = 0; i < 256; i++) {
 }
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * SHA-256 cryptographic digest (32 bytes)
@@ -22015,7 +21970,6 @@ for (let i = 0; i < 256; i++) {
 }
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * A value in a namespace of unsigned integers that represents a stand-alone
@@ -22390,7 +22344,6 @@ var KnownValue = class KnownValue {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 */
 /**
@@ -22700,7 +22653,6 @@ var KnownValuesStore = class KnownValuesStore {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Bundled registry data loaded at build time.
@@ -50816,7 +50768,6 @@ const delegating = (op) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Tag registry and management system.
@@ -50988,7 +50939,6 @@ const getGlobalTagsStore = () => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Hex dump utilities for CBOR data.
@@ -51032,7 +50982,6 @@ const hexOpt = (cbor, opts = {}) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Enhanced diagnostic formatting for CBOR values.
@@ -51102,7 +51051,6 @@ function diagnostic(cbor) {
 const isFloat$1 = (simple) => simple.type === "Float";
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * dCBOR decoding — delegates to `@blockchaincommons/dcbor`, the canonical
@@ -51116,7 +51064,6 @@ function decodeCbor(data) {
 }
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Convenience utilities for working with CBOR values.
@@ -51153,7 +51100,6 @@ const extractCbor = (cbor) => {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Map Support in dCBOR
@@ -51481,7 +51427,6 @@ function walkTagged(cbor, level, parentState, visitor) {
 }
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 */
 const MajorType = {
@@ -51921,7 +51866,6 @@ attachMethods({
 });
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * Error type for UR encoding/decoding operations.
@@ -52020,7 +51964,6 @@ var URDecodeError = class extends URError {
 };
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 */
 /**
@@ -52737,7 +52680,6 @@ function decodeBytewords(encoded, style = "minimal") {
 }
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 */
 /**
@@ -53081,7 +53023,6 @@ for (let i = 0; i < 256; i++) {
 //#region src/token.ts
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * @blockchaincommons/dcbor-parse - Token types and Lexer
@@ -53565,7 +53506,6 @@ function isValidDateString(dateStr) {
 //#region src/parse.ts
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * @blockchaincommons/dcbor-parse - Parse module
@@ -53805,7 +53745,6 @@ function parseMap(lexer) {
 //#region src/compose.ts
 /**
 * Copyright © 2023-2026 Blockchain Commons, LLC
-* Copyright © 2025-2026 Parity Technologies
 *
 *
 * @blockchaincommons/dcbor-parse - Compose module
