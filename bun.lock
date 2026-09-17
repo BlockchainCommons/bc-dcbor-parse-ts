@@ -6,7 +6,7 @@
       "name": "@blockchaincommons/dcbor-parse",
       "dependencies": {
         "@blockchaincommons/dcbor": "^1.0.0-beta.3",
-        "@blockchaincommons/known-values": "^1.0.0-beta.3",
+        "@blockchaincommons/known-values": "^1.0.0-beta.4",
         "@blockchaincommons/uniform-resources": "^1.0.0-beta.3",
       },
       "devDependencies": {
@@ -50,13 +50,13 @@
 
     "@bcoe/v8-coverage": ["@bcoe/v8-coverage@1.0.2", "", {}, "sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA=="],
 
-    "@blockchaincommons/components": ["@blockchaincommons/components@1.0.0-beta.3", "", { "dependencies": { "@blockchaincommons/crypto": "^1.0.0-beta.3", "@blockchaincommons/dcbor": "^1.0.0-beta.3", "@blockchaincommons/rand": "^1.0.0-beta.3", "@blockchaincommons/sskr": "^1.0.0-beta.3", "@blockchaincommons/tags": "^1.0.0-beta.3", "@blockchaincommons/uniform-resources": "^1.0.0-beta.3", "@noble/curves": "^2.4.0", "@noble/hashes": "^2.4.0", "@noble/post-quantum": "^0.7.1", "@scure/base": "^2.4.0" } }, "sha512-0zy6+cd8aTDNHNRV2cEBm4QE9jvFbn/7nvKYc9MghAGa0Vt/3u/WcEFazyAjirisZQe07YmIurKxSMfuy7Q2VA=="],
+    "@blockchaincommons/components": ["@blockchaincommons/components@1.0.0-beta.4", "", { "dependencies": { "@blockchaincommons/crypto": "^1.0.0-beta.3", "@blockchaincommons/dcbor": "^1.0.0-beta.3", "@blockchaincommons/rand": "^1.0.0-beta.3", "@blockchaincommons/sskr": "^1.0.0-beta.3", "@blockchaincommons/tags": "^1.0.0-beta.3", "@blockchaincommons/uniform-resources": "^1.0.0-beta.3", "@noble/curves": "^2.4.0", "@noble/hashes": "^2.4.0", "@noble/post-quantum": "^0.7.1", "@scure/base": "^2.4.0" } }, "sha512-kORUnkYSvG5TEo+6zOQsJTpG6ebj5akPD+tR/DXm283S2rnNfh8X3XV6OX9mX/sPwc9kKbh3/SWrbTn9V4z3XA=="],
 
     "@blockchaincommons/crypto": ["@blockchaincommons/crypto@1.0.0-beta.3", "", { "dependencies": { "@blockchaincommons/rand": "^1.0.0-beta.3", "@noble/ciphers": "^2.4.0", "@noble/curves": "^2.4.0", "@noble/hashes": "^2.4.0" } }, "sha512-Kd8D6naoW6PL+JnbjSChy0QXv/tST7k0Nj0J95leBdSKnmiFL4ukpEH63HW6oJnd7hY8jfqQdg7EBYs4MofowQ=="],
 
     "@blockchaincommons/dcbor": ["@blockchaincommons/dcbor@1.0.0-beta.3", "", {}, "sha512-WMX+A+ohCNl5vbq8jv+8/N+ygmgFG9V2V60dggRa8WfO+Ab/vvhl7W8mMeY9Rm9iSll3CK1q0bSNoWHPWfu9eg=="],
 
-    "@blockchaincommons/known-values": ["@blockchaincommons/known-values@1.0.0-beta.3", "", { "dependencies": { "@blockchaincommons/components": "^1.0.0-beta.3", "@blockchaincommons/dcbor": "^1.0.0-beta.3", "@blockchaincommons/tags": "^1.0.0-beta.3" } }, "sha512-CdBBX+4BXW0PnvQ0WTEABCFUFpwI3kYAjgdcjnWcKjA6IZMpWiGPeWYYeQEihHh0gd8jFcynha7N3fQp+VV6Pw=="],
+    "@blockchaincommons/known-values": ["@blockchaincommons/known-values@1.0.0-beta.4", "", { "dependencies": { "@blockchaincommons/components": "^1.0.0-beta.4", "@blockchaincommons/dcbor": "^1.0.0-beta.3", "@blockchaincommons/tags": "^1.0.0-beta.3" } }, "sha512-g+rvMOyaos9mqgyr5ntyG7R3FuvVswh2wMePxJ7Vf5rXwtF5Ge8Af2D+bmk//jZSvsyiU/2WITek2TLehThceg=="],
 
     "@blockchaincommons/rand": ["@blockchaincommons/rand@1.0.0-beta.3", "", {}, "sha512-SelWiTP+Ngb2y9ZOT5deyDmGFjkP0JxJxMN3GA1UOAiV05XtDgUPMPFreU3LQ9zBpAepFajE8t7IrCf2dDQRxA=="],
 
