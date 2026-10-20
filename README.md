@@ -84,6 +84,7 @@ Runnable examples live in the [`examples/`](https://github.com/BlockchainCommons
 
 ### Version History
 
+- **1.0.0-beta.5 (October 19, 2026)** - Installs with npm on a host without Bun, with its `@blockchaincommons/*` dependencies at 1.0.0-beta.5 ([bc-components-ts#11](https://github.com/BlockchainCommons/bc-components-ts/issues/11)); the `prepare` hook no longer fails `npm pack` without a local `typescript6`.
 - **1.0.0-beta.2 (September 16, 2026)** - Entry-point names (`parseDcborItem`, `parseDcborItemPartial`) and its error taxonomy inside arrays, its error spans and its literal rules; `UnexpectedToken` carries the token.
 - **1.0.0-beta.1 (September 16, 2026)** - Initial beta implementation.
 
